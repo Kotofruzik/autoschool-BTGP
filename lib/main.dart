@@ -13,8 +13,7 @@ import 'package:autoschool_btgp/services/auth_service.dart';
 import 'package:autoschool_btgp/student/student_home_page.dart';
 import 'package:autoschool_btgp/instructor/instructor_home_page.dart';
 import 'package:autoschool_btgp/admin/admin_home_page.dart';
-import 'dart:convert';
-
+import 'dart:async';
 // ВАЖНО: Эта функция должна быть на верхнем уровне и иметь аннотацию
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -156,23 +155,144 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  String? _currentRole;
+  Timer? _rolePollingTimer;
+  bool _isLoading = true; // Флаг первоначальной загрузки
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  @override
+  void dispose() {
+    _rolePollingTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initializeApp() async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+
+    if (auth.currentUser == null) {
+      setState(() {
+        _isLoading = false;
+        _currentRole = null;
+      });
+      return;
+    }
+
+    // 1. Пытаемся взять роль из кэша для скорости
+    String? cachedRole = auth.currentUser!.get('role');
+    
+    // 2. СРАЗУ делаем запрос к серверу для проверки актуальности (чтобы не мигало)
+    // Мы ждем этот запрос только при первом запуске сессии
+    try {
+      final query = QueryBuilder<ParseUser>(ParseUser.forQuery())
+        ..whereEqualTo('objectId', auth.currentUser!.objectId);
+      final response = await query.query();
+
+      if (response.success && response.results != null && response.results!.isNotEmpty) {
+        final serverUser = response.results!.first as ParseUser;
+        final serverRole = serverUser.get('role') ?? 'student';
+        
+        // Обновляем кэш и переменную роли данными с сервера ДО отрисовки
+        auth.currentUser!.set('role', serverRole);
+        setState(() {
+          _currentRole = serverRole;
+          _isLoading = false;
+        });
+        print('✅ [INIT] Роль загружена с сервера: $serverRole');
+        _startRolePolling(); // Запускаем поллинг только после успешной инициализации
+        return;
+      }
+    } catch (e) {
+      print('⚠️ [INIT] Ошибка загрузки роли с сервера, используем кэш: $e');
+    }
+
+    // Если сервер недоступен или ошибка, используем кэш (fallback)
+    if (cachedRole == null || cachedRole.isEmpty) {
+      cachedRole = 'student';
+    }
+    
+    setState(() {
+      _currentRole = cachedRole;
+      _isLoading = false;
+    });
+    print('⚡ [INIT] Роль загружена из кэша: $cachedRole');
+    _startRolePolling();
+  }
+
+  Future<void> _syncWithServerInBackground(AuthService auth) async {
+    try {
+      final query = QueryBuilder<ParseUser>(ParseUser.forQuery())
+        ..whereEqualTo('objectId', auth.currentUser!.objectId);
+      final response = await query.query();
+
+      if (response.success && response.results != null && response.results!.isNotEmpty) {
+        final updatedUser = response.results!.first as ParseUser;
+        final serverRole = updatedUser.get('role') ?? 'student';
+        final currentCachedRole = auth.currentUser!.get('role') ?? 'student';
+
+        if (serverRole != currentCachedRole) {
+          auth.currentUser!.set('role', serverRole);
+          print('💾 [CACHE] Роль обновлена в кэше: $serverRole');
+          
+          if (mounted) {
+            setState(() {
+              _currentRole = serverRole;
+            });
+            print('🔄 [UI] Интерфейс перерисован под роль: $serverRole');
+          }
+        }
+      }
+    } catch (e) {
+      // Тихая ошибка в фоне, чтобы не спамить консоль
+      // print('⚠️ [SYNC] Ошибка фоновой синхронизации: $e');
+    }
+  }
+
+  void _startRolePolling() {
+    _rolePollingTimer?.cancel();
+    _rolePollingTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      if (auth.currentUser != null) {
+        await _syncWithServerInBackground(auth);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
 
-    if (auth.currentUser != null && auth.currentUser!.sessionToken != null) {
-      final role = auth.currentUser!.get('role') ?? 'student';
-      switch (role) {
-        case 'admin':
-          return AdminHomePage();
-        case 'instructor':
-          return InstructorHomePage();
-        case 'student':
-        default:
-          return StudentHomePage();
-      }
+    if (auth.currentUser == null) {
+      return LoginPage();
     }
-    return LoginPage();
+
+    // Показываем заглушку пока грузится роль при первом старте
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    switch (_currentRole) {
+      case 'admin':
+        return AdminHomePage();
+      case 'instructor':
+        return InstructorHomePage();
+      case 'student':
+      default:
+        return StudentHomePage();
+    }
   }
 }
