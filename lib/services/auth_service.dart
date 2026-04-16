@@ -29,6 +29,8 @@ class AuthService extends ChangeNotifier {
   Future<void> _loadCurrentUser() async {
     _currentUser = await ParseUser.currentUser() as ParseUser?;
     if (_currentUser != null) {
+      // Сразу загружаем актуальные данные с сервера, включая роль
+      await _refreshCurrentUser();
       _startPolling();
     }
     notifyListeners();
@@ -40,7 +42,7 @@ class AuthService extends ChangeNotifier {
 
   void _startPolling() {
     _stopPolling();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
       await _refreshCurrentUser();
     });
   }
@@ -109,6 +111,8 @@ class AuthService extends ChangeNotifier {
       var response = await user.login();
       if (response.success) {
         _currentUser = response.result;
+        // Сразу загружаем актуальные данные с сервера, включая роль
+        await _refreshCurrentUser();
         _startPolling();
         notifyListeners();
         
@@ -184,6 +188,8 @@ class AuthService extends ChangeNotifier {
           await currentUser.save();
         }
 
+        // Сразу загружаем актуальные данные с сервера, включая роль
+        await _refreshCurrentUser();
         _startPolling();
         notifyListeners();
         
