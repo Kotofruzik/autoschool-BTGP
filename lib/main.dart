@@ -117,7 +117,7 @@ void main() async {
 
   // Инициализация уведомлений и запрос разрешений
   await NotificationService.setupPush();
-  
+
   // Проверка токена после инициализации
   final token = NotificationService.getCurrentToken();
   print('🔑 [MAIN] Текущий токен: $token');
