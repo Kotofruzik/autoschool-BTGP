@@ -1,0 +1,30 @@
+cat > .gitignore << 'EOF'
+# macOS
+.DS_Store
+
+# Flutter / Dart
+.dart_tool/
+.pub/
+.pub-cache/
+.packages
+build/
+*.lock
+*.dill
+
+# Android
+*.apk
+*.aab
+*.so
+.gradle/
+local.properties
+.idea/
+
+# iOS
+Pods/
+*.xcworkspace
+*.xcuserstate
+
+# IDE
+.vscode/
+*.swp
+EOF
