@@ -156,14 +156,69 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  String? _currentRole;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _determineRole();
+  }
+
+  Future<void> _determineRole() async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    
+    // Ждем пока AuthService загрузит текущего пользователя
+    if (auth.currentUser == null) {
+      setState(() {
+        _isLoading = false;
+        _currentRole = null;
+      });
+      return;
+    }
+
+    // Получаем актуальные данные пользователя с сервера
+    try {
+      final query = QueryBuilder<ParseUser>(ParseUser.forQuery())
+        ..whereEqualTo('objectId', auth.currentUser!.objectId);
+      final response = await query.query();
+      
+      if (response.success && response.results != null && response.results!.isNotEmpty) {
+        final updatedUser = response.results!.first as ParseUser;
+        _currentRole = updatedUser.get('role') ?? 'student';
+        // Обновляем роль в локальном пользователе
+        auth.currentUser!.set('role', _currentRole);
+      } else {
+        _currentRole = auth.currentUser!.get('role') ?? 'student';
+      }
+    } catch (e) {
+      print('⚠️ Ошибка получения роли: $e');
+      _currentRole = auth.currentUser!.get('role') ?? 'student';
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
 
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     if (auth.currentUser != null && auth.currentUser!.sessionToken != null) {
-      final role = auth.currentUser!.get('role') ?? 'student';
-      switch (role) {
+      switch (_currentRole) {
         case 'admin':
           return AdminHomePage();
         case 'instructor':
