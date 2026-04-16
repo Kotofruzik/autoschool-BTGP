@@ -37,9 +37,12 @@ class AuthService extends ChangeNotifier {
       // Сразу загружаем актуальные данные с сервера, включая роль
       await _refreshCurrentUser();
       _startPolling();
+      // Уведомляем слушателей ПОСЛЕ загрузки актуальных данных
+      notifyListeners();
+    } else {
+      // Если пользователя нет, тоже уведомляем
+      notifyListeners();
     }
-    // Уведомляем слушателей ТОЛЬКО после загрузки актуальных данных
-    notifyListeners();
   }
 
   Future<ParseUser?> getCurrentUser() async {
@@ -66,11 +69,10 @@ class AuthService extends ChangeNotifier {
       final response = await query.query();
       if (response.success && response.results != null && response.results!.isNotEmpty) {
         final updatedUser = response.results!.first as ParseUser;
-        if (updatedUser.get('role') != _currentUser!.get('role')) {
-          _currentUser!.set('role', updatedUser.get('role'));
-          notifyListeners();
-          print('🔄 Роль обновлена через polling: ${updatedUser.get('role')}');
-        }
+        // Полностью заменяем объект пользователя на актуальный с сервера
+        _currentUser = updatedUser;
+        notifyListeners();
+        print('🔄 Данные пользователя обновлены через polling: ${updatedUser.get('role')}');
       }
     } catch (e) {
       print('❌ Ошибка при опросе: $e');
