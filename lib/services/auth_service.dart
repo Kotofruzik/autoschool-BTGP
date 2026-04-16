@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:minio/io.dart';
@@ -11,7 +10,6 @@ import 'package:autoschool_btgp/notification_service.dart';
 class AuthService extends ChangeNotifier {
   ParseUser? _currentUser;
   bool _isLoading = false;
-  Timer? _pollingTimer;
 
   ParseUser? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
@@ -22,15 +20,11 @@ class AuthService extends ChangeNotifier {
 
   void setCurrentUser(ParseUser user) {
     _currentUser = user;
-    _startPolling();
     notifyListeners();
   }
 
   Future<void> _loadCurrentUser() async {
     _currentUser = await ParseUser.currentUser() as ParseUser?;
-    if (_currentUser != null) {
-      _startPolling();
-    }
     notifyListeners();
   }
 
@@ -39,34 +33,17 @@ class AuthService extends ChangeNotifier {
   }
 
   void _startPolling() {
-    _stopPolling();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
-      await _refreshCurrentUser();
-    });
+    // Полностью отключили polling - он не нужен
+    // Роль берётся из кэша при старте и обновляется только при следующем входе
   }
 
   void _stopPolling() {
-    _pollingTimer?.cancel();
-    _pollingTimer = null;
+    // Пустой метод для совместимости
   }
 
   Future<void> _refreshCurrentUser() async {
+    // Метод больше не используется, оставлен для совместимости
     if (_currentUser == null) return;
-    try {
-      final query = QueryBuilder<ParseUser>(ParseUser.forQuery())
-        ..whereEqualTo('objectId', _currentUser!.objectId);
-      final response = await query.query();
-      if (response.success && response.results != null && response.results!.isNotEmpty) {
-        final updatedUser = response.results!.first as ParseUser;
-        if (updatedUser.get('role') != _currentUser!.get('role')) {
-          _currentUser!.set('role', updatedUser.get('role'));
-          notifyListeners();
-          print('🔄 Роль обновлена через polling: ${updatedUser.get('role')}');
-        }
-      }
-    } catch (e) {
-      print('❌ Ошибка при опросе: $e');
-    }
   }
 
   Future<String?> registerWithEmail({
@@ -89,8 +66,12 @@ class AuthService extends ChangeNotifier {
       var response = await user.signUp();
       if (response.success) {
         _currentUser = response.result;
-        _startPolling();
         notifyListeners();
+        
+        // После успешной регистрации отправляем токен уведомлений на сервер
+        print('🔑 [AUTH] Регистрация выполнена, отправляем FCM токен...');
+        await NotificationService.resendTokenIfLoggedIn();
+        
         return null;
       } else {
         return response.error!.message;
@@ -109,7 +90,6 @@ class AuthService extends ChangeNotifier {
       var response = await user.login();
       if (response.success) {
         _currentUser = response.result;
-        _startPolling();
         notifyListeners();
         
         // После успешного входа отправляем токен уведомлений на сервер
@@ -184,7 +164,6 @@ class AuthService extends ChangeNotifier {
           await currentUser.save();
         }
 
-        _startPolling();
         notifyListeners();
         
         // После успешного входа отправляем токен уведомлений на сервер

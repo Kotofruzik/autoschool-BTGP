@@ -13,8 +13,7 @@ import 'package:autoschool_btgp/services/auth_service.dart';
 import 'package:autoschool_btgp/student/student_home_page.dart';
 import 'package:autoschool_btgp/instructor/instructor_home_page.dart';
 import 'package:autoschool_btgp/admin/admin_home_page.dart';
-import 'dart:convert';
-
+import 'dart:async';
 // ВАЖНО: Эта функция должна быть на верхнем уровне и иметь аннотацию
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -163,47 +162,86 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   String? _currentRole;
-  bool _isLoading = true;
+  Timer? _rolePollingTimer;
 
   @override
   void initState() {
     super.initState();
     _determineRole();
+    // Запускаем поллинг для реактивного обновления роли каждые 2 секунды
+    _startRolePolling();
+  }
+
+  @override
+  void dispose() {
+    _rolePollingTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _determineRole() async {
     final auth = Provider.of<AuthService>(context, listen: false);
-    
-    // Ждем пока AuthService загрузит текущего пользователя
+
     if (auth.currentUser == null) {
       setState(() {
-        _isLoading = false;
         _currentRole = null;
       });
       return;
     }
 
-    // Получаем актуальные данные пользователя с сервера
+    // Берём роль ТОЛЬКО из локального кэша - мгновенно
+    String? cachedRole = auth.currentUser!.get('role');
+
+    // Если роли нет в кэше, ставим student по умолчанию
+    if (cachedRole == null || cachedRole.isEmpty) {
+      cachedRole = 'student';
+    }
+
+    setState(() {
+      _currentRole = cachedRole;
+    });
+
+    // Синхронизация с сервером в фоне БЕЗ обновления UI
+    // Обновляем только кэш, но не меняем _currentRole
+    _syncWithServerInBackground(auth);
+  }
+
+  Future<void> _syncWithServerInBackground(AuthService auth) async {
     try {
       final query = QueryBuilder<ParseUser>(ParseUser.forQuery())
         ..whereEqualTo('objectId', auth.currentUser!.objectId);
       final response = await query.query();
-      
+
       if (response.success && response.results != null && response.results!.isNotEmpty) {
         final updatedUser = response.results!.first as ParseUser;
-        _currentRole = updatedUser.get('role') ?? 'student';
-        // Обновляем роль в локальном пользователе
-        auth.currentUser!.set('role', _currentRole);
-      } else {
-        _currentRole = auth.currentUser!.get('role') ?? 'student';
+        final serverRole = updatedUser.get('role') ?? 'student';
+
+        // Проверяем, изменилась ли роль на сервере
+        final currentCachedRole = auth.currentUser!.get('role') ?? 'student';
+        
+        if (serverRole != currentCachedRole) {
+          // Обновляем кэш
+          auth.currentUser!.set('role', serverRole);
+          print('💾 [CACHE] Роль обновлена в кэше: $serverRole');
+          
+          // И обновляем UI, если роль изменилась
+          setState(() {
+            _currentRole = serverRole;
+          });
+          print('🔄 [UI] Интерфейс перерисован под роль: $serverRole');
+        }
       }
     } catch (e) {
-      print('⚠️ Ошибка получения роли: $e');
-      _currentRole = auth.currentUser!.get('role') ?? 'student';
+      print('⚠️ [SYNC] Ошибка фоновой синхронизации: $e');
     }
+  }
 
-    setState(() {
-      _isLoading = false;
+  void _startRolePolling() {
+    _rolePollingTimer?.cancel();
+    _rolePollingTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      if (auth.currentUser != null) {
+        await _syncWithServerInBackground(auth);
+      }
     });
   }
 
@@ -211,23 +249,18 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
 
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+    if (auth.currentUser == null) {
+      return LoginPage();
     }
 
-    if (auth.currentUser != null && auth.currentUser!.sessionToken != null) {
-      switch (_currentRole) {
-        case 'admin':
-          return AdminHomePage();
-        case 'instructor':
-          return InstructorHomePage();
-        case 'student':
-        default:
-          return StudentHomePage();
-      }
+    switch (_currentRole) {
+      case 'admin':
+        return AdminHomePage();
+      case 'instructor':
+        return InstructorHomePage();
+      case 'student':
+      default:
+        return StudentHomePage();
     }
-    return LoginPage();
   }
 }
