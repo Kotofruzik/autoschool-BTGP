@@ -12,12 +12,17 @@ class AuthService extends ChangeNotifier {
   ParseUser? _currentUser;
   bool _isLoading = false;
   Timer? _pollingTimer;
+  Future<void>? _initializationComplete;
 
   ParseUser? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
 
   AuthService() {
-    _loadCurrentUser();
+    _initializationComplete = _loadCurrentUser();
+  }
+
+  Future<void> ensureInitialized() async {
+    await _initializationComplete;
   }
 
   void setCurrentUser(ParseUser user) {
@@ -33,6 +38,7 @@ class AuthService extends ChangeNotifier {
       await _refreshCurrentUser();
       _startPolling();
     }
+    // Уведомляем слушателей ТОЛЬКО после загрузки актуальных данных
     notifyListeners();
   }
 

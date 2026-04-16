@@ -156,23 +156,51 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  late Future<void> _initializationFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final auth = Provider.of<AuthService>(context, listen: false);
+    _initializationFuture = auth.ensureInitialized();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthService>(context);
+    return FutureBuilder<void>(
+      future: _initializationFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // Показываем индикатор загрузки пока не загрузятся актуальные данные о пользователе
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
 
-    if (auth.currentUser != null && auth.currentUser!.sessionToken != null) {
-      final role = auth.currentUser!.get('role') ?? 'student';
-      switch (role) {
-        case 'admin':
-          return AdminHomePage();
-        case 'instructor':
-          return InstructorHomePage();
-        case 'student':
-        default:
-          return StudentHomePage();
-      }
-    }
-    return LoginPage();
+        final auth = Provider.of<AuthService>(context);
+
+        if (auth.currentUser != null && auth.currentUser!.sessionToken != null) {
+          final role = auth.currentUser!.get('role') ?? 'student';
+          switch (role) {
+            case 'admin':
+              return AdminHomePage();
+            case 'instructor':
+              return InstructorHomePage();
+            case 'student':
+            default:
+              return StudentHomePage();
+          }
+        }
+        return LoginPage();
+      },
+    );
   }
 }
