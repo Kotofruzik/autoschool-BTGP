@@ -163,13 +163,12 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   String? _currentRole;
   Timer? _rolePollingTimer;
+  bool _isLoading = true; // Флаг первоначальной загрузки
 
   @override
   void initState() {
     super.initState();
-    _determineRole();
-    // Запускаем поллинг для реактивного обновления роли каждые 2 секунды
-    _startRolePolling();
+    _initializeApp();
   }
 
   @override
@@ -178,31 +177,56 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.dispose();
   }
 
-  Future<void> _determineRole() async {
+  Future<void> _initializeApp() async {
     final auth = Provider.of<AuthService>(context, listen: false);
 
     if (auth.currentUser == null) {
       setState(() {
+        _isLoading = false;
         _currentRole = null;
       });
       return;
     }
 
-    // Берём роль ТОЛЬКО из локального кэша - мгновенно
+    // 1. Пытаемся взять роль из кэша для скорости
     String? cachedRole = auth.currentUser!.get('role');
+    
+    // 2. СРАЗУ делаем запрос к серверу для проверки актуальности (чтобы не мигало)
+    // Мы ждем этот запрос только при первом запуске сессии
+    try {
+      final query = QueryBuilder<ParseUser>(ParseUser.forQuery())
+        ..whereEqualTo('objectId', auth.currentUser!.objectId);
+      final response = await query.query();
 
-    // Если роли нет в кэше, ставим student по умолчанию
+      if (response.success && response.results != null && response.results!.isNotEmpty) {
+        final serverUser = response.results!.first as ParseUser;
+        final serverRole = serverUser.get('role') ?? 'student';
+        
+        // Обновляем кэш и переменную роли данными с сервера ДО отрисовки
+        auth.currentUser!.set('role', serverRole);
+        setState(() {
+          _currentRole = serverRole;
+          _isLoading = false;
+        });
+        print('✅ [INIT] Роль загружена с сервера: $serverRole');
+        _startRolePolling(); // Запускаем поллинг только после успешной инициализации
+        return;
+      }
+    } catch (e) {
+      print('⚠️ [INIT] Ошибка загрузки роли с сервера, используем кэш: $e');
+    }
+
+    // Если сервер недоступен или ошибка, используем кэш (fallback)
     if (cachedRole == null || cachedRole.isEmpty) {
       cachedRole = 'student';
     }
-
+    
     setState(() {
       _currentRole = cachedRole;
+      _isLoading = false;
     });
-
-    // Синхронизация с сервером в фоне БЕЗ обновления UI
-    // Обновляем только кэш, но не меняем _currentRole
-    _syncWithServerInBackground(auth);
+    print('⚡ [INIT] Роль загружена из кэша: $cachedRole');
+    _startRolePolling();
   }
 
   Future<void> _syncWithServerInBackground(AuthService auth) async {
@@ -214,24 +238,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
       if (response.success && response.results != null && response.results!.isNotEmpty) {
         final updatedUser = response.results!.first as ParseUser;
         final serverRole = updatedUser.get('role') ?? 'student';
-
-        // Проверяем, изменилась ли роль на сервере
         final currentCachedRole = auth.currentUser!.get('role') ?? 'student';
-        
+
         if (serverRole != currentCachedRole) {
-          // Обновляем кэш
           auth.currentUser!.set('role', serverRole);
           print('💾 [CACHE] Роль обновлена в кэше: $serverRole');
           
-          // И обновляем UI, если роль изменилась
-          setState(() {
-            _currentRole = serverRole;
-          });
-          print('🔄 [UI] Интерфейс перерисован под роль: $serverRole');
+          if (mounted) {
+            setState(() {
+              _currentRole = serverRole;
+            });
+            print('🔄 [UI] Интерфейс перерисован под роль: $serverRole');
+          }
         }
       }
     } catch (e) {
-      print('⚠️ [SYNC] Ошибка фоновой синхронизации: $e');
+      // Тихая ошибка в фоне, чтобы не спамить консоль
+      // print('⚠️ [SYNC] Ошибка фоновой синхронизации: $e');
     }
   }
 
@@ -251,6 +274,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     if (auth.currentUser == null) {
       return LoginPage();
+    }
+
+    // Показываем заглушку пока грузится роль при первом старте
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
     }
 
     switch (_currentRole) {
