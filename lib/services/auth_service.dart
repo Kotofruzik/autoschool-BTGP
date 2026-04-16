@@ -12,12 +12,17 @@ class AuthService extends ChangeNotifier {
   ParseUser? _currentUser;
   bool _isLoading = false;
   Timer? _pollingTimer;
+  Future<void>? _initializationComplete;
 
   ParseUser? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
 
   AuthService() {
-    _loadCurrentUser();
+    _initializationComplete = _loadCurrentUser();
+  }
+
+  Future<void> ensureInitialized() async {
+    await _initializationComplete;
   }
 
   void setCurrentUser(ParseUser user) {
@@ -29,9 +34,15 @@ class AuthService extends ChangeNotifier {
   Future<void> _loadCurrentUser() async {
     _currentUser = await ParseUser.currentUser() as ParseUser?;
     if (_currentUser != null) {
+      // Сразу загружаем актуальные данные с сервера, включая роль
+      await _refreshCurrentUser();
       _startPolling();
+      // Уведомляем слушателей ПОСЛЕ загрузки актуальных данных
+      notifyListeners();
+    } else {
+      // Если пользователя нет, тоже уведомляем
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<ParseUser?> getCurrentUser() async {
@@ -40,7 +51,7 @@ class AuthService extends ChangeNotifier {
 
   void _startPolling() {
     _stopPolling();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
       await _refreshCurrentUser();
     });
   }
@@ -58,11 +69,10 @@ class AuthService extends ChangeNotifier {
       final response = await query.query();
       if (response.success && response.results != null && response.results!.isNotEmpty) {
         final updatedUser = response.results!.first as ParseUser;
-        if (updatedUser.get('role') != _currentUser!.get('role')) {
-          _currentUser!.set('role', updatedUser.get('role'));
-          notifyListeners();
-          print('🔄 Роль обновлена через polling: ${updatedUser.get('role')}');
-        }
+        // Полностью заменяем объект пользователя на актуальный с сервера
+        _currentUser = updatedUser;
+        notifyListeners();
+        print('🔄 Данные пользователя обновлены через polling: ${updatedUser.get('role')}');
       }
     } catch (e) {
       print('❌ Ошибка при опросе: $e');
@@ -109,6 +119,8 @@ class AuthService extends ChangeNotifier {
       var response = await user.login();
       if (response.success) {
         _currentUser = response.result;
+        // Сразу загружаем актуальные данные с сервера, включая роль
+        await _refreshCurrentUser();
         _startPolling();
         notifyListeners();
         
@@ -184,6 +196,8 @@ class AuthService extends ChangeNotifier {
           await currentUser.save();
         }
 
+        // Сразу загружаем актуальные данные с сервера, включая роль
+        await _refreshCurrentUser();
         _startPolling();
         notifyListeners();
         
