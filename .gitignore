@@ -1,22 +1,43 @@
 ```
-# Dependencies
-.pub/
-.dart_tool/
+# Build artifacts
 build/
+*.apk
+*.aar
+*.so
+*.jar
+
+# Gradle
+.gradle/
+!gradle.properties
+!gradlew
+!gradlew.bat
+
+# Android
+*.iml
+local.properties
+captures/
+
+# Dart/Flutter
+.dart_tool/
+.packages
+.pub/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
 
 # Logs
 *.log
 
-# Environment variables
+# Environment
 .env
 .env.local
 *.env.*
 
-# OS generated files
+# OS
 .DS_Store
 Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp
 ```

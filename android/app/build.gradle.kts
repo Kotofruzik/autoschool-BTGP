@@ -34,7 +34,12 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            // Включаем ProGuard/R8 для оптимизации, но добавляем правила для Firebase
+            isMinifyEnabled = false  // Пока отключаем для отладки пушей
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

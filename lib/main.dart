@@ -23,7 +23,18 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('📝 [BG-DATA] Data: ${message.data}');
 
   // Гарантированная инициализация Firebase в фоне
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp(
+      options: FirebaseOptions(
+        projectId: 'autoschool-btgp-ddb89',
+        appId: '1:816760214374:android:505321274784b016aa2ea7',
+        messagingSenderId: '816760214374',
+      ),
+    );
+  } catch (e) {
+    // Firebase уже инициализирован - это нормально
+    print('ℹ️ [BG-FIREBASE] Уже инициализирован: $e');
+  }
 
   // Показываем уведомление напрямую без вызова setupPush()
   // Это предотвращает конфликты инициализации в фоновом режиме
