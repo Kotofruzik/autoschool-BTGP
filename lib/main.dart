@@ -177,7 +177,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       future: _initializationFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // Показываем индикатор загрузки пока не загрузятся актуальные данные о пользователе
+          // Показываем индикатор загрузки пока не загрузятся актуальные данные о пользователееее
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(),
