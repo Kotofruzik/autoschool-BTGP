@@ -1,18 +1,16 @@
 import 'dart:io';
-import 'dart:convert'; // Для JSON
+import 'dart:convert';
 import 'package:minio/io.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:minio/minio.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http; // Импорт для HTTP запросов
+import 'package:http/http.dart' as http;
 
 class LessonService {
-  // Константы вашего сервера
   static const String _serverUrl = 'https://parseapi.back4app.com';
   static const String _appId = 'qCxbZic6eqme0pvScG5jLoCxDUxztB9FGuiXhEiy';
   static const String _clientKey = '50yEotCNReUkwSd7nhVmhYnoZspmLcbizp1GJC3v';
 
-  // --- Загрузка фото автомобиля ---
   Future<String?> uploadCarPhoto(XFile image) async {
     try {
       final file = File(image.path);
@@ -47,7 +45,6 @@ class LessonService {
     }
   }
 
-  // --- Отправка Push-уведомления через прямой HTTP запрос ---
   Future<void> sendLessonNotification({
     required String studentId,
     required String lessonType,
@@ -66,7 +63,6 @@ class LessonService {
         'lessonId': lessonId,
       });
 
-      // Получаем текущий session token пользователя
       final user = await ParseUser.currentUser() as ParseUser?;
       final sessionToken = user?.sessionToken;
 
@@ -96,7 +92,6 @@ class LessonService {
     }
   }
 
-  // --- Создание занятия ---
   Future<ParseObject?> createLesson({
     required String type,
     required DateTime startTime,
@@ -130,7 +125,6 @@ class LessonService {
       final createdLesson = response.result as ParseObject;
       print('✅ Урок создан: ${createdLesson.objectId}');
 
-      // 🚀 ОТПРАВЛЯЕМ УВЕДОМЛЕНИЕ СРАЗУ ПОСЛЕ СОЗДАНИЯ
       if (student.objectId != null && createdLesson.objectId != null) {
         await sendLessonNotification(
           studentId: student.objectId!,
@@ -158,7 +152,6 @@ class LessonService {
     return acl;
   }
 
-  // --- Получение занятий ученика ---
   Future<List<ParseObject>> getLessonsForStudent(ParseUser student) async {
     final query = QueryBuilder<ParseObject>(ParseObject('Lesson'))
       ..whereEqualTo('student', student.toPointer())
@@ -173,7 +166,6 @@ class LessonService {
     }
   }
 
-  // --- Получение занятий инструктора ---
   Future<List<ParseObject>> getLessonsForInstructor(ParseUser instructor) async {
     final query = QueryBuilder<ParseObject>(ParseObject('Lesson'))
       ..whereEqualTo('instructor', instructor.toPointer())
@@ -188,7 +180,6 @@ class LessonService {
     }
   }
 
-  // --- Отмена занятия ---
   Future<void> cancelLesson(ParseObject lesson) async {
     lesson.set('status', 'cancelled');
     final response = await lesson.save();
@@ -197,7 +188,6 @@ class LessonService {
     }
   }
 
-  // --- Запрос переноса (ученик) ---
   Future<void> requestReschedule(ParseObject lesson, DateTime newStartTime, DateTime newEndTime, {String? reason}) async {
     lesson.set('rescheduleRequest', {
       'newStartTime': newStartTime.toIso8601String(),
@@ -211,7 +201,6 @@ class LessonService {
     }
   }
 
-  // --- Подтверждение переноса (инструктор) ---
   Future<void> approveReschedule(ParseObject lesson) async {
     final request = lesson.get<Map<String, dynamic>>('rescheduleRequest');
     if (request != null) {
@@ -228,7 +217,6 @@ class LessonService {
     }
   }
 
-  // --- Отклонение переноса (инструктор) ---
   Future<void> rejectReschedule(ParseObject lesson) async {
     lesson.set('rescheduleRequest', null);
     lesson.set('status', 'scheduled');
@@ -238,7 +226,6 @@ class LessonService {
     }
   }
 
-  // --- Удаление занятия ---
   Future<void> deleteLesson(ParseObject lesson) async {
     final response = await lesson.delete();
     if (!response.success) {

@@ -15,18 +15,14 @@ import 'package:autoschool_btgp/instructor/instructor_home_page.dart';
 import 'package:autoschool_btgp/admin/admin_home_page.dart';
 import 'dart:convert';
 
-// ВАЖНО: Эта функция должна быть на верхнем уровне и иметь аннотацию
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('📩 [BG-START] ${DateTime.now()} | Фоновое сообщение получено');
   print('🆔 [BG-ID] MessageID: ${message.messageId}');
   print('📝 [BG-DATA] Data: ${message.data}');
 
-  // Гарантированная инициализация Firebase в фоне
   await Firebase.initializeApp();
 
-  // Показываем уведомление напрямую без вызова setupPush()
-  // Это предотвращает конфликты инициализации в фоновом режиме
   await _showBackgroundNotification(message);
 
   print('✅ [BG-SUCCESS] Обработка завершена');
@@ -36,7 +32,6 @@ Future<void> _showBackgroundNotification(RemoteMessage message) async {
   String title = message.notification?.title ?? 'Новое уведомление';
   String body = message.notification?.body ?? '';
 
-  // Парсинг вложенных данных от Back4App
   if (message.data.isNotEmpty) {
     try {
       if (message.data.containsKey('data')) {
@@ -56,13 +51,11 @@ Future<void> _showBackgroundNotification(RemoteMessage message) async {
 
   final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
-  // Инициализация только если нужна (в фоне контекст ограничен)
   const AndroidInitializationSettings initializationSettingsAndroid =
   AndroidInitializationSettings('@mipmap/ic_launcher');
   const InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
   );
-  // Игнорируем ошибки инициализации в фоне, если плагин уже инициализирован
   try {
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   } catch (_) {}
@@ -111,14 +104,11 @@ void main() async {
 
   await Firebase.initializeApp();
 
-  // Регистрация фонового обработчика - ДО инициализации уведомлений
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   print('✅ [MAIN] Фоновый обработчик зарегистрирован');
 
-  // Инициализация уведомлений и запрос разрешений
   await NotificationService.setupPush();
 
-  // Проверка токена после инициализации
   final token = NotificationService.getCurrentToken();
   print('🔑 [MAIN] Текущий токен: $token');
 
@@ -177,7 +167,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
       future: _initializationFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // Показываем индикатор загрузки пока не загрузятся актуальные данные о пользователееее
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(),

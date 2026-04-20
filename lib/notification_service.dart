@@ -23,7 +23,6 @@ class NotificationService {
 
     print('🔔 [NOTIFY] Начало инициализации...');
 
-    // 1. Настройка плагина локальных уведомлений
     const AndroidInitializationSettings initializationSettingsAndroid =
     AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -46,25 +45,19 @@ class NotificationService {
     );
     print('✅ [NOTIFY] Плагин инициализирован');
 
-    // 2. Создание канала
     await _createHighImportanceChannel();
 
-    // 3. ЗАПРОС РАЗРЕШЕНИЙ (ПЕРВЫМ ШАГОМ!)
-    // Это критично для Android 13+, иначе токен может не прийти или пуши не показываться
     await _requestAllPermissions();
 
-    // 4. Получение токена ТОЛЬКО ПОСЛЕ разрешений
     String? token = await _firebaseMessaging.getToken();
     print('[FCM] Получен токен: ${token != null ? "${token.substring(0, 10)}..." : "null"}');
 
     _currentToken = token;
 
-    // 5. Сохранение токена, если пользователь уже залогинен
     if (token != null) {
       await saveTokenToServer(token);
     }
 
-    // 6. Слушатели обновлений
     _firebaseMessaging.onTokenRefresh.listen((newToken) async {
       print('[FCM] Токен обновлен: ${newToken.substring(0, 10)}...');
       _currentToken = newToken;
@@ -74,7 +67,6 @@ class NotificationService {
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
 
-    // Проверка начального сообщения (если приложение открыто из убитого состояния по пушу)
     RemoteMessage? initialMessage = await _firebaseMessaging.getInitialMessage();
     if (initialMessage != null) {
       print('🚀 [OPEN] Приложение запущено через пуш');
@@ -92,7 +84,6 @@ class NotificationService {
       final currentUser = await ParseUser.currentUser() as ParseUser?;
 
       if (currentUser == null) {
-        // Пользователь не залогинен, сохраняем в память, отправим при логине
         print('⚠️ [FCM] Пользователь не авторизован, токен сохранен в памяти');
         _currentToken = token;
         return;
@@ -100,7 +91,6 @@ class NotificationService {
 
       final existingToken = currentUser.get('fcmToken');
 
-      // Сравниваем, чтобы не делать лишних запросов к серверу
       if (existingToken == token) {
         return;
       }
@@ -118,17 +108,14 @@ class NotificationService {
     }
   }
 
-  // Вызывать этот метод сразу после успешного логина пользователя
   static Future<void> resendTokenIfLoggedIn() async {
     print('🔄 [FCM] Попытка отправить токен после логина...');
 
-    // Если токен уже есть в памяти (получен ранее), отправляем его
     if (_currentToken != null) {
       await saveTokenToServer(_currentToken);
       return;
     }
 
-    // Если токена нет, пробуем получить свежий
     final token = await _firebaseMessaging.getToken();
     if (token != null) {
       _currentToken = token;
@@ -168,7 +155,6 @@ class NotificationService {
   static Future<void> _requestAllPermissions() async {
     print('🔐 [PERMISSION] Запрос разрешений...');
 
-    // Запрос разрешений iOS
     await _firebaseMessaging.requestPermission(
       alert: true,
       badge: true,
@@ -177,7 +163,6 @@ class NotificationService {
       criticalAlert: true,
     );
 
-    // Запрос разрешений Android 13+
     final androidPlugin = _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
 
@@ -198,19 +183,16 @@ class NotificationService {
 
   static void onNotificationTapped(NotificationResponse response) {
     print('👆 [TAP] Нажатие на уведомление');
-    // Здесь можно добавить навигацию на экран урока, распарсив response.payload
   }
 
   static void _handleMessageOpenedApp(RemoteMessage message) {
     print('🚀 [OPEN] Приложение открыто из пуша');
-    // Логика навигации при открытии приложения
   }
 
   static Future<void> _showLocalNotificationFromMessage(RemoteMessage message) async {
     String title = message.notification?.title ?? 'Уведомление';
     String body = message.notification?.body ?? '';
 
-    // Дополнительная проверка данных, если они пришли в поле data
     if (message.data.containsKey('title')) {
       title = message.data['title']!;
     }
