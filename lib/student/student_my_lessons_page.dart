@@ -5,6 +5,7 @@ import 'package:autoschool_btgp/services/auth_service.dart';
 import '../services/lesson_service.dart';
 import 'package:autoschool_btgp/lesson/lesson_model.dart';
 import 'package:autoschool_btgp/lesson/lesson_detail_page.dart';
+import 'package:autoschool_btgp/lesson/circular_lesson_timer.dart';
 
 class StudentMyLessonsPage extends StatefulWidget {
   @override
@@ -187,17 +188,23 @@ class _StudentMyLessonsPageState extends State<StudentMyLessonsPage> {
           child: Column(
             children: [
               const Text('Сейчас идёт', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70)),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
+              CircularLessonTimer(
+                lesson: lesson,
+                size: 260, // Увеличенный размер для студента
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => LessonDetailPage(lesson: lesson, isInstructor: false)),
+                  );
+                  _loadLessons();
+                },
+              ),
+              const SizedBox(height: 16),
               Text(lesson.displayType, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 4),
               Text(lesson.displayDateTimeRange, style: const TextStyle(fontSize: 16, color: Colors.white70)),
               const SizedBox(height: 12),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 300),
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                child: Text(lesson.countdownDetailed),
-              ),
-              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () async {
                   await Navigator.push(
@@ -235,17 +242,23 @@ class _StudentMyLessonsPageState extends State<StudentMyLessonsPage> {
           child: Column(
             children: [
               const Text('Ближайшее занятие', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70)),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
+              CircularLessonTimer(
+                lesson: lesson,
+                size: 260, // Увеличенный размер для студента
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => LessonDetailPage(lesson: lesson, isInstructor: false)),
+                  );
+                  _loadLessons();
+                },
+              ),
+              const SizedBox(height: 16),
               Text(lesson.displayType, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 4),
               Text(lesson.displayDateTimeRange, style: const TextStyle(fontSize: 16, color: Colors.white70)),
               const SizedBox(height: 12),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 300),
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                child: Text(lesson.countdownDetailed),
-              ),
-              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () async {
                   await Navigator.push(

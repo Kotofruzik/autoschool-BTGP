@@ -1,7 +1,9 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:autoschool_btgp/services/auth_service.dart';
 import 'package:autoschool_btgp/notification_service.dart';
+import 'package:autoschool_btgp/services/terms_of_service_page.dart';
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -21,6 +23,35 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
+
+  late TapGestureRecognizer _termsRecognizer;
+  late TapGestureRecognizer _privacyRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _termsRecognizer = TapGestureRecognizer()
+      ..onTap = () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => TermsOfServicePage()),
+        );
+      };
+    _privacyRecognizer = TapGestureRecognizer()
+      ..onTap = () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => TermsOfServicePage()),
+        );
+      };
+  }
+
+  @override
+  void dispose() {
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
+    super.dispose();
+  }
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -87,7 +118,7 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     } else if (!_agreeToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Необходимо согласие с правилами'), backgroundColor: Colors.orange,)
+          const SnackBar(content: Text('Необходимо согласие с правилами'), backgroundColor: Colors.orange,)
       );
     }
   }
@@ -214,11 +245,33 @@ class _RegisterPageState extends State<RegisterPage> {
                               checkColor: Colors.blue,
                             ),
                             Expanded(
-                              child: GestureDetector(
-                                onTap: () => setState(() => _agreeToTerms = !_agreeToTerms),
-                                child: const Text(
-                                  'Я согласен с правилами автошколы и обработкой персональных данных',
-                                  style: TextStyle(color: Colors.white, fontSize: 12),
+                              child: RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                                  children: [
+                                    const TextSpan(text: 'Я согласен с '),
+                                    TextSpan(
+                                      text: 'Правилами автошколы',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        decoration: TextDecoration.underline,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      recognizer: _termsRecognizer,
+                                    ),
+                                    const TextSpan(text: ' и '),
+                                    TextSpan(
+                                      text: 'обработкой персональных данных',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        decoration: TextDecoration.underline,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      recognizer: _privacyRecognizer,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),

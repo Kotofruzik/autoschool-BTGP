@@ -5,6 +5,7 @@ import 'package:autoschool_btgp/services/auth_service.dart';
 import '../services/lesson_service.dart';
 import 'package:autoschool_btgp/lesson/lesson_model.dart';
 import 'package:autoschool_btgp/lesson/lesson_detail_page.dart';
+import 'package:autoschool_btgp/lesson/circular_lesson_timer.dart';
 
 class InstructorLessonsPage extends StatefulWidget {
   @override
@@ -203,23 +204,29 @@ class _InstructorLessonsPageState extends State<InstructorLessonsPage> {
                 'Сейчас идёт',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
+              CircularLessonTimer(
+                lesson: lesson,
+                size: 300, // Очень крупный размер для инструктора
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => LessonDetailPage(lesson: lesson, isInstructor: true)),
+                  );
+                  _loadLessons();
+                },
+              ),
+              const SizedBox(height: 16),
               Text(
                 lesson.displayType,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               const SizedBox(height: 4),
               Text(
                 lesson.displayDateTimeRange,
-                style: const TextStyle(fontSize: 16, color: Colors.white70),
+                style: const TextStyle(fontSize: 18, color: Colors.white70),
               ),
               const SizedBox(height: 12),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 300),
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                child: Text(lesson.countdownDetailed), // без префикса
-              ),
-              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () async {
                   await Navigator.push(
@@ -260,23 +267,29 @@ class _InstructorLessonsPageState extends State<InstructorLessonsPage> {
                 'Ближайшее занятие',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
+              CircularLessonTimer(
+                lesson: lesson,
+                size: 300, // Очень крупный размер для инструктора
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => LessonDetailPage(lesson: lesson, isInstructor: true)),
+                  );
+                  _loadLessons();
+                },
+              ),
+              const SizedBox(height: 16),
               Text(
                 lesson.displayType,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               const SizedBox(height: 4),
               Text(
                 lesson.displayDateTimeRange,
-                style: const TextStyle(fontSize: 16, color: Colors.white70),
+                style: const TextStyle(fontSize: 18, color: Colors.white70),
               ),
               const SizedBox(height: 12),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 300),
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                child: Text(lesson.countdownDetailed), // без дополнительного префикса
-              ),
-              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () async {
                   await Navigator.push(
