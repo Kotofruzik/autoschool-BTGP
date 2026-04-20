@@ -12,11 +12,8 @@ class StudentHomePage extends StatefulWidget {
 class _StudentHomePageState extends State<StudentHomePage> {
   int _selectedIndex = 0;
 
-  static final List<Widget> _pages = <Widget>[
-    StudentMyLessonsPage(),
-    StudentChatsPage(),
-    StudentProfilePage(),
-  ];
+  // Ключ для пересоздания страницы занятий при необходимости
+  Key _lessonsPageKey = UniqueKey();
 
   void _onItemTapped(int index) {
     setState(() {
@@ -24,10 +21,26 @@ class _StudentHomePageState extends State<StudentHomePage> {
     });
   }
 
+  void _onProfileChanged(bool? changed) {
+    if (changed == true && mounted) {
+      // Обновляем страницу занятий после открепления от инструктора
+      setState(() {
+        _selectedIndex = 0;
+        _lessonsPageKey = UniqueKey(); // Создаём новый ключ для пересоздания виджета
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = <Widget>[
+      StudentMyLessonsPage(key: _lessonsPageKey),
+      StudentChatsPage(),
+      StudentProfilePage(onDetach: _onProfileChanged),
+    ];
+
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Мои занятия'),

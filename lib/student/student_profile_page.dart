@@ -10,6 +10,10 @@ import 'package:autoschool_btgp/services/lesson_service.dart';
 import 'package:autoschool_btgp/lesson/lesson_model.dart';
 
 class StudentProfilePage extends StatefulWidget {
+  final Function(bool?)? onDetach;
+  
+  const StudentProfilePage({Key? key, this.onDetach}) : super(key: key);
+  
   @override
   _StudentProfilePageState createState() => _StudentProfilePageState();
 }
@@ -125,6 +129,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     // и проверяем, можно ли сделать pop
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+
+      // Сообщаем родительскому виджету об откреплении
+      widget.onDetach?.call(true);
 
       if (Navigator.canPop(context)) {
         print('🔃 Выполняем Navigator.pop');

@@ -155,6 +155,7 @@ class LessonService {
   Future<List<ParseObject>> getLessonsForStudent(ParseUser student) async {
     final query = QueryBuilder<ParseObject>(ParseObject('Lesson'))
       ..whereEqualTo('student', student.toPointer())
+      ..includeObject(['instructor'])
       ..orderByAscending('startTime');
 
     final response = await query.query();
