@@ -25,6 +25,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _agreeToTerms = false;
 
   late TapGestureRecognizer _termsRecognizer;
+  late TapGestureRecognizer _privacyRecognizer;
 
   @override
   void initState() {
@@ -36,11 +37,19 @@ class _RegisterPageState extends State<RegisterPage> {
           MaterialPageRoute(builder: (context) => TermsOfServicePage()),
         );
       };
+    _privacyRecognizer = TapGestureRecognizer()
+      ..onTap = () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => TermsOfServicePage()),
+        );
+      };
   }
 
   @override
   void dispose() {
     _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
     super.dispose();
   }
 
@@ -260,7 +269,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                         decoration: TextDecoration.underline,
                                         fontWeight: FontWeight.bold,
                                       ),
-                                      recognizer: _termsRecognizer,
+                                      recognizer: _privacyRecognizer,
                                     ),
                                   ],
                                 ),
