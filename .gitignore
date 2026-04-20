@@ -2,7 +2,16 @@
 # Dependencies
 .pub/
 .dart_tool/
+
+# Build artifacts
 build/
+*.apk
+*.aab
+*.app
+*.exe
+*.dll
+*.so
+*.dylib
 
 # Logs
 *.log
@@ -12,9 +21,19 @@ build/
 .env.local
 *.env.*
 
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
 
 # Temporary files
 *.tmp
