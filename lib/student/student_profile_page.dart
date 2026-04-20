@@ -333,7 +333,6 @@ class _MobileScannerPageState extends State<MobileScannerPage> {
 
   @override
   void dispose() {
-    // 🔧 Гарантированно освобождаем камеру
     _controller?.dispose();
     _controller = null;
     super.dispose();
@@ -359,7 +358,6 @@ class _MobileScannerPageState extends State<MobileScannerPage> {
               for (final barcode in barcodes) {
                 if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
                   _isDetected = true;
-                  // 🔧 Останавливаем камеру перед закрытием
                   _controller?.stop();
                   Navigator.pop(context, barcode.rawValue!);
                   return;
@@ -367,7 +365,6 @@ class _MobileScannerPageState extends State<MobileScannerPage> {
               }
             },
           ),
-          // Оверлей с рамкой для лучшего визуала
           Center(
             child: Container(
               width: 250,

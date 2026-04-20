@@ -179,16 +179,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
         });
 
         if (response.success) {
-          // Пароль изменён – выполняем повторный вход с новым паролем
           final email = user.get('email') ?? user.get('username');
           final loginError = await auth.loginWithEmail(email, newPasswordController.text);
           if (loginError == null) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Пароль успешно изменён'), backgroundColor: Colors.green),
             );
-            Navigator.pop(context); // возврат на профиль
+            Navigator.pop(context);
           } else {
-            // Если вход не удался – показываем предупреждение и выходим на логин
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Пароль изменён, но не удалось войти. Пожалуйста, войдите заново.'),
@@ -242,6 +240,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  // Скрыть клавиатуру при тапе вне полей
+  void _dismissKeyboard() {
+    FocusScope.of(context).unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
@@ -249,28 +252,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final currentPhotoUrl = user?.get('photo') as String?;
     final isGoogleUser = user?.get('authData') != null;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          (_isUploading || _isSaving)
-              ? const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(color: Colors.white),
-            ),
-          )
-              : IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: _saveChanges,
-          ),
-        ],
-      ),
-      body: Container(
+    return GestureDetector(
+      onTap: _dismissKeyboard,
+      child: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -278,126 +262,89 @@ class _EditProfilePageState extends State<EditProfilePage> {
             colors: [Colors.blue, Colors.lightBlueAccent],
           ),
         ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                const SizedBox(height: 5),
-                // Аватар
-                GestureDetector(
-                  onTap: _pickAndCropImage,
-                  child: Stack(
-                    children: [
-                      Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                          image: _newCroppedImage != null
-                              ? DecorationImage(
-                            image: FileImage(File(_newCroppedImage!.path)),
-                            fit: BoxFit.cover,
-                          )
-                              : (currentPhotoUrl != null
-                              ? DecorationImage(
-                            image: CachedNetworkImageProvider(currentPhotoUrl),
-                            fit: BoxFit.cover,
-                          )
-                              : null),
-                        ),
-                        child: (currentPhotoUrl == null && _newCroppedImage == null)
-                            ? const Icon(Icons.person, size: 50, color: Colors.blue)
-                            : null,
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          decoration: const BoxDecoration(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          // resizeToAvoidBottomInset по умолчанию true → экран сжимается при клавиатуре
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            actions: [
+              (_isUploading || _isSaving)
+                  ? const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              )
+                  : IconButton(
+                icon: const Icon(Icons.check),
+                onPressed: _saveChanges,
+              ),
+            ],
+          ),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 5),
+                  // Аватар
+                  GestureDetector(
+                    onTap: _pickAndCropImage,
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                            image: _newCroppedImage != null
+                                ? DecorationImage(
+                              image: FileImage(File(_newCroppedImage!.path)),
+                              fit: BoxFit.cover,
+                            )
+                                : (currentPhotoUrl != null
+                                ? DecorationImage(
+                              image: CachedNetworkImageProvider(currentPhotoUrl),
+                              fit: BoxFit.cover,
+                            )
+                                : null),
                           ),
-                          child: const Icon(Icons.camera_alt,
-                              color: Colors.blue, size: 16),
+                          child: (currentPhotoUrl == null && _newCroppedImage == null)
+                              ? const Icon(Icons.person, size: 50, color: Colors.blue)
+                              : null,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 15),
-
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _firstNameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Имя',
-                            prefixIcon: Icon(Icons.person, color: Colors.blue),
-                            border: InputBorder.none,
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.camera_alt,
+                                color: Colors.blue, size: 16),
                           ),
-                        ),
-                        const Divider(),
-                        TextField(
-                          controller: _surnameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Фамилия',
-                            prefixIcon: Icon(Icons.person_outline, color: Colors.blue),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                        const Divider(),
-                        TextField(
-                          controller: _patronymicController,
-                          decoration: const InputDecoration(
-                            labelText: 'Отчество',
-                            prefixIcon: Icon(Icons.person, color: Colors.blue),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                        const Divider(),
-                        TextField(
-                          controller: _phoneController,
-                          decoration: const InputDecoration(
-                            labelText: 'Телефон',
-                            prefixIcon: Icon(Icons.phone, color: Colors.blue),
-                            border: InputBorder.none,
-                          ),
-                          keyboardType: TextInputType.phone,
                         ),
                       ],
                     ),
                   ),
-                ),
+                  const SizedBox(height: 15),
 
-                const SizedBox(height: 10),
-
-                if (!isGoogleUser)
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -410,49 +357,110 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ),
                       ],
                     ),
-                    child: ListTile(
-                      leading: const Icon(Icons.lock, color: Colors.blue),
-                      title: const Text('Изменить пароль'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: _changePassword,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _firstNameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Имя',
+                              prefixIcon: Icon(Icons.person, color: Colors.blue),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                          const Divider(),
+                          TextField(
+                            controller: _surnameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Фамилия',
+                              prefixIcon: Icon(Icons.person_outline, color: Colors.blue),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                          const Divider(),
+                          TextField(
+                            controller: _patronymicController,
+                            decoration: const InputDecoration(
+                              labelText: 'Отчество',
+                              prefixIcon: Icon(Icons.person, color: Colors.blue),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                          const Divider(),
+                          TextField(
+                            controller: _phoneController,
+                            decoration: const InputDecoration(
+                              labelText: 'Телефон',
+                              prefixIcon: Icon(Icons.phone, color: Colors.blue),
+                              border: InputBorder.none,
+                            ),
+                            keyboardType: TextInputType.phone,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
-                const SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
-                ElevatedButton(
-                  onPressed: _signOut,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 45),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  if (!isGoogleUser)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: ListTile(
+                        leading: const Icon(Icons.lock, color: Colors.blue),
+                        title: const Text('Изменить пароль'),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: _changePassword,
+                      ),
+                    ),
+
+                  const SizedBox(height: 10),
+
+                  ElevatedButton(
+                    onPressed: _signOut,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 45),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Выйти из профиля',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                   ),
-                  child: const Text(
-                    'Выйти из профиля',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ),
-                const SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
-                TextButton(
-                  onPressed: _deleteAccount,
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    minimumSize: const Size(double.infinity, 45),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  TextButton(
+                    onPressed: _deleteAccount,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      minimumSize: const Size(double.infinity, 45),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Удалить профиль',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  child: const Text(
-                    'Удалить профиль',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
+                  const SizedBox(height: 10),
+                ],
+              ),
             ),
           ),
         ),

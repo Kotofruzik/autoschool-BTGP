@@ -18,10 +18,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
 
   bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
 
   late TapGestureRecognizer _termsRecognizer;
@@ -50,6 +48,12 @@ class _RegisterPageState extends State<RegisterPage> {
   void dispose() {
     _termsRecognizer.dispose();
     _privacyRecognizer.dispose();
+    _surnameController.dispose();
+    _firstnameController.dispose();
+    _patronymicController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -118,7 +122,7 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     } else if (!_agreeToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Необходимо согласие с правилами'), backgroundColor: Colors.orange,)
+        const SnackBar(content: Text('Необходимо согласие с правилами'), backgroundColor: Colors.orange),
       );
     }
   }
@@ -143,9 +147,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const SizedBox(height: 20),
-                  const Text('Создать аккаунт', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const Text('Создать аккаунт',
+                      style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
                   const SizedBox(height: 10),
-                  const Text('Заполните форму для регистрации', style: TextStyle(fontSize: 16, color: Colors.white70)),
+                  const Text('Заполните форму для регистрации',
+                      style: TextStyle(fontSize: 16, color: Colors.white70)),
                   const SizedBox(height: 30),
                   Form(
                     key: _formKey,
@@ -156,7 +165,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           hintText: 'Фамилия',
                           icon: Icons.person,
                           validator: (value) {
-                            if (value == null || value.isEmpty) return 'Введите фамилию';
+                            if (value == null || value.isEmpty)
+                              return 'Введите фамилию';
                             return null;
                           },
                         ),
@@ -166,7 +176,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           hintText: 'Имя',
                           icon: Icons.person,
                           validator: (value) {
-                            if (value == null || value.isEmpty) return 'Введите имя';
+                            if (value == null || value.isEmpty)
+                              return 'Введите имя';
                             return null;
                           },
                         ),
@@ -175,9 +186,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           controller: _patronymicController,
                           hintText: 'Отчество',
                           icon: Icons.person,
-                          validator: (value) {
-                            return null;
-                          },
+                          validator: (value) => null,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
@@ -186,8 +195,10 @@ class _RegisterPageState extends State<RegisterPage> {
                           icon: Icons.email,
                           keyboardType: TextInputType.emailAddress,
                           validator: (value) {
-                            if (value == null || value.isEmpty) return 'Введите Email';
-                            if (!value.contains('@') || !value.contains('.')) return 'Введите корректный Email';
+                            if (value == null || value.isEmpty)
+                              return 'Введите Email';
+                            if (!value.contains('@') || !value.contains('.'))
+                              return 'Введите корректный Email';
                             return null;
                           },
                         ),
@@ -198,7 +209,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           icon: Icons.phone,
                           keyboardType: TextInputType.phone,
                           validator: (value) {
-                            if (value == null || value.isEmpty) return 'Введите номер телефона';
+                            if (value == null || value.isEmpty)
+                              return 'Введите номер телефона';
                             if (value.length < 10) return 'Номер слишком короткий';
                             return null;
                           },
@@ -210,28 +222,18 @@ class _RegisterPageState extends State<RegisterPage> {
                           icon: Icons.lock,
                           obscureText: _obscurePassword,
                           suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            icon: Icon(_obscurePassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                                color: Colors.grey),
+                            onPressed: () => setState(() =>
+                            _obscurePassword = !_obscurePassword),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) return 'Введите пароль';
-                            if (value.length < 6) return 'Пароль должен быть не менее 6 символов';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        _buildTextField(
-                          controller: _confirmPasswordController,
-                          hintText: 'Подтвердите пароль',
-                          icon: Icons.lock_outline,
-                          obscureText: _obscureConfirmPassword,
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
-                            onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) return 'Подтвердите пароль';
-                            if (value != _passwordController.text) return 'Пароли не совпадают';
+                            if (value == null || value.isEmpty)
+                              return 'Введите пароль';
+                            if (value.length < 6)
+                              return 'Пароль должен быть не менее 6 символов';
                             return null;
                           },
                         ),
@@ -240,14 +242,17 @@ class _RegisterPageState extends State<RegisterPage> {
                           children: [
                             Checkbox(
                               value: _agreeToTerms,
-                              onChanged: (value) => setState(() => _agreeToTerms = value ?? false),
-                              fillColor: MaterialStateProperty.resolveWith<Color>((states) => Colors.white),
+                              onChanged: (value) =>
+                                  setState(() => _agreeToTerms = value ?? false),
+                              fillColor: MaterialStateProperty.resolveWith<Color>(
+                                      (states) => Colors.white),
                               checkColor: Colors.blue,
                             ),
                             Expanded(
                               child: RichText(
                                 text: TextSpan(
-                                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 12),
                                   children: [
                                     const TextSpan(text: 'Я согласен с '),
                                     TextSpan(
@@ -285,28 +290,34 @@ class _RegisterPageState extends State<RegisterPage> {
                     width: double.infinity,
                     height: 55,
                     child: auth.isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                        ? const Center(
+                        child: CircularProgressIndicator(color: Colors.white))
                         : ElevatedButton(
                       onPressed: _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         elevation: 5,
                       ),
-                      child: const Text('Зарегистрироваться', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      child: const Text('Зарегистрироваться',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Уже есть аккаунт?', style: TextStyle(color: Colors.white70)),
+                      const Text('Уже есть аккаунт?',
+                          style: TextStyle(color: Colors.white70)),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
                         child: const Text(
                           'Войти',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold,),
+                          style: TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],

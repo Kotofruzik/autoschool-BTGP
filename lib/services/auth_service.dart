@@ -46,7 +46,7 @@ class AuthService extends ChangeNotifier {
 
   void _startPolling() {
     _stopPolling();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       await _refreshCurrentUser();
     });
   }
