@@ -236,36 +236,33 @@ class _RegisterPageState extends State<RegisterPage> {
                               checkColor: Colors.blue,
                             ),
                             Expanded(
-                              child: GestureDetector(
-                                onTap: () => setState(() => _agreeToTerms = !_agreeToTerms),
-                                child: RichText(
-                                  text: TextSpan(
-                                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                                    children: [
-                                      const TextSpan(text: 'Я согласен с '),
-                                      TextSpan(
-                                        text: 'Правилами автошколы',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          decoration: TextDecoration.underline,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        recognizer: _termsRecognizer,
+                              child: RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                                  children: [
+                                    const TextSpan(text: 'Я согласен с '),
+                                    TextSpan(
+                                      text: 'Правилами автошколы',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        decoration: TextDecoration.underline,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      const TextSpan(text: ' и '),
-                                      TextSpan(
-                                        text: 'обработкой персональных данных',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          decoration: TextDecoration.underline,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        recognizer: _termsRecognizer,
+                                      recognizer: _termsRecognizer,
+                                    ),
+                                    const TextSpan(text: ' и '),
+                                    TextSpan(
+                                      text: 'обработкой персональных данных',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        decoration: TextDecoration.underline,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                    ],
-                                  ),
+                                      recognizer: _termsRecognizer,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
