@@ -92,7 +92,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Инициализация локали для DateFormat (intl package)
-  await initializeDateFormatting('ru_RU', null);
+  // Используем '' для инициализации локали по умолчанию
+  await initializeDateFormatting('', null);
 
   const keyApplicationId = 'qCxbZic6eqme0pvScG5jLoCxDUxztB9FGuiXhEiy';
   const keyClientKey = '50yEotCNReUkwSd7nhVmhYnoZspmLcbizp1GJC3v';
