@@ -14,6 +14,7 @@ import 'package:autoschool_btgp/student/student_home_page.dart';
 import 'package:autoschool_btgp/instructor/instructor_home_page.dart';
 import 'package:autoschool_btgp/admin/admin_home_page.dart';
 import 'dart:convert';
+import 'package:intl/date_symbol_data_local.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -89,6 +90,9 @@ Future<void> _showBackgroundNotification(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Инициализация локали для DateFormat (intl package)
+  await initializeDateFormatting('ru_RU', null);
 
   const keyApplicationId = 'qCxbZic6eqme0pvScG5jLoCxDUxztB9FGuiXhEiy';
   const keyClientKey = '50yEotCNReUkwSd7nhVmhYnoZspmLcbizp1GJC3v';

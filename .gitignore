@@ -1,22 +1,50 @@
-```
-# Dependencies
-.pub/
+```dart
+# Generated plugin build files
+**/android/**/generated_plugin_registrant.java
+**/android/**/GeneratedPluginRegistrant.kt
+**/ios/**/GeneratedPluginRegistrant.h
+**/ios/**/GeneratedPluginRegistrant.m
+**/ios/**/generated_plugin_registrant.m
+**/linux/**/generated_plugin_registrant.cc
+**/macos/**/generated_plugin_registrant.swift
+**/windows/**/generated_plugin_registrant.cc
+**/windows/**/generated_plugin_registrant.h
+
+# Flutter/Dart/Pub cache
 .dart_tool/
-build/
+.dart_tool/**
+.pub-cache/
+.pub-cache/**
+.build/
+.build/**
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
 
-# Logs
-*.log
+# Android
+**/android/key.properties
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
 
-# Environment variables
-.env
-.env.local
-*.env.*
+# iOS
+**/ios/Flutter/.symlinks
+**/ios/Pods
+**/ios/Runner/GeneratedPluginRegistrant.*
 
-# OS generated files
-.DS_Store
-Thumbs.db
+# Linux
+**/linux/flutter/ephemeral
 
-# Temporary files
-*.tmp
-*.temp
+# macOS
+**/macos/Flutter/ephemeral
+
+# Windows
+**/windows/Flutter/ephemeral
+
+# Web
+**/web/.dart_tool
+**/web/build
+**/web/.packages
+**/web/.flutter-plugins
+**/web/.flutter-plugins-dependencies
 ```
