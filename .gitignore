@@ -1,10 +1,11 @@
-```
-# Dependencies
-.pub/
-.dart_tool/
-build/
+# Build outputs
+**/build/
+**/dist/
+*.so
+*.dylib
+*.dll
 
-# Logs
+# Log files
 *.log
 
 # Environment variables
@@ -12,11 +13,59 @@ build/
 .env.local
 *.env.*
 
-# OS generated files
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependency directories
+node_modules/
+vendor/
+**/target/
+
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.gcda
+*.gcno
+htmlcov/
+.hypothesis/
 .DS_Store
 Thumbs.db
 
-# Temporary files
+# Dart/Flutter specific
+.dart_tool/
+.packages
+.pub/
+build/
+*.iws
+*.ipr
+*.iml
+out/
+_derps/
+.dart-deps
+.dart-server/
+.DS_Store
+*.log
 *.tmp
-*.temp
-```
+*.swp
+*~
+
+# Original rules preserved
+*.log
