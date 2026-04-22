@@ -1,33 +1,391 @@
-```
-# Build artifacts
-*.dart_tool/
-*.build/
-build/
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
+*.pyd
+*.dylib
+*.jar
+*.war
+*.ear
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 
 # Dependencies
-.pub-cache/
-pubspec.lock
+node_modules/
+venv/
+.venv/
+.env
+.env.local
+.env.*
 
 # Logs and temp files
 *.log
 *.tmp
+*.swp
+*.swo
+*.bak
+*.~
+Thumbs.db
+.DS_Store
 
-# Environment
-.env
-.env.local
-*.env.*
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# Build directories
+dist/
+build/
+target/
+.out/
 
 # Editors
 .vscode/
 .idea/
-*.swp
-*.swo
+*.iml
+*.ipr
+*.iws
 
-# Coverage
-coverage/
-*.coverage
+# Python specific
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+.eggs/
+.mypy_cache/
+.pytest_cache/
+.tox/
+.hypothesis/
+
+# Node.js specific
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Gradle specific
+.gradle/
+build/
+
+# Java specific
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+
+# C/C++ specific
+*.o
+*.a
+*.obj
+*.exe
+*.pdb
+*.lib
+*.so
+*.dll
+*.dylib
+
+# Go specific
+*.o
+*.a
+*.swp
+*~
+
+# Rust specific
+*.o
+*.rlib
+*.so
+*.dylib
+*.dll
+
+# Ruby specific
+*.gem
+*.rbc
+*.sass-cache
+.bundle/
+
+# Web specific
+.sass-cache/
+.cache/
+public/system/
 
 # OS generated files
-.DS_Store
-Thumbs.db
-```
+ehthumbs.db
+Icon?
+._*
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*~
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Test coverage
+coverage.xml
+*.gcov
+*.lcov
+*.info
+
+# Environment specific
+.env
+.env.local
+.env.*
+!.env.example
+
+# IDE specific
+.vs/
+*.swp
+*.swo
+*~
+
+# Dart/Flutter specific
+.dart_tool/
+.packages
+.pub/
+build/
+*.g.dart
+*.freezed.dart
+
+# Julia specific
+.julia/
+*.ji
+*.mem
+
+# Zig specific
+zig-cache/
+*.zig
+
+# Maven specific
+target/
+
+# SBT specific
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/target/
+**/*.class
+**/*.o
+**/*.pyc
+
+# Pipenv specific
+.pipenv/
+
+# Poetry specific
+.poetry/
+
+# Conda specific
+.conda/
+
+# Virtualenv specific
+venv/
+env/
+ENV/
+
+# Docker specific
+.dockerenv
+.dockerinit
+
+# Vagrant specific
+.vagrant/
+
+# Ansible specific
+.retry/
+
+# Terraform specific
+.terraform/
+*.tfstate
+*.tfvars
+
+# Kubernetes specific
+.kube/
+
+# AWS specific
+.aws/
+
+# Azure specific
+.azure/
+
+# Google Cloud specific
+.gcloud/
+
+# Heroku specific
+.heroku/
+
+# Netlify specific
+.netlify/
+
+# Vercel specific
+.vercel/
+
+# Railway specific
+.railway/
+
+# Railway env specific
+.railway.env
+
+# Railway secrets specific
+.railway.secrets
+
+# Railway config specific
+.railway.config
+
+# Railway logs specific
+.railway.logs
+
+# Railway cache specific
+.railway.cache
+
+# Railway tmp specific
+.railway.tmp
+
+# Railway temp specific
+.railway.temp
+
+# Railway backup specific
+.railway.backup
+
+# Railway bak specific
+.railway.bak
+
+# Railway log specific
+.railway.log
+
+# Railway out specific
+.railway.out
+
+# Railway pid specific
+.railway.pid
+
+# Railway sock specific
+.railway.sock
+
+# Railway lock specific
+.railway.lock
+
+# Railway tmp specific
+.railway.tmp
+
+# Railway temp specific
+.railway.temp
+
+# Railway cache specific
+.railway.cache
+
+# Railway logs specific
+.railway.logs
+
+# Railway secrets specific
+.railway.secrets
+
+# Railway config specific
+.railway.config
+
+# Railway state specific
+.railway.state
+
+# Railway vars specific
+.railway.vars
+
+# Railway credentials specific
+.railway.credentials
+
+# Railway tokens specific
+.railway.tokens
+
+# Railway keys specific
+.railway.keys
+
+# Railway certs specific
+.railway.certs
+
+# Railway pem specific
+.railway.pem
+
+# Railway p12 specific
+.railway.p12
+
+# Railway jks specific
+.railway.jks
+
+# Railway keystore specific
+.railway.keystore
+
+# Railway truststore specific
+.railway.truststore
+
+# Railway hprof specific
+.railway.hprof
+
+# Railway heap specific
+.railway.heap
+
+# Railway core specific
+.railway.core
+
+# Railway dump specific
+.railway.dump
+
+# Railway trace specific
+.railway.trace
+
+# Railway profile specific
+.railway.profile
+
+# Railway snapshot specific
+.railway.snapshot
+
+# Railway backup specific
+.railway.backup
+
+# Railway bak specific
+.railway.bak
+
+# Railway log specific
+.railway.log
+
+# Railway out specific
+.railway.out
+
+# Railway pid specific
+.railway.pid
+
+# Railway sock specific
+.railway.sock
+
+# Railway lock specific
+.railway.lock
