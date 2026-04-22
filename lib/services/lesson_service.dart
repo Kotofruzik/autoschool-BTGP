@@ -101,7 +101,7 @@ class LessonService {
     String? carNumber,
     String? carPhotoUrl,
     String? comment,
-    required ParseUser student,
+    required ParseObject student,
     required ParseUser instructor,
   }) async {
     final lesson = ParseObject('Lesson')
@@ -142,13 +142,15 @@ class LessonService {
     }
   }
 
-  ParseACL _createLessonACL(ParseUser instructor, ParseUser student) {
+  ParseACL _createLessonACL(ParseUser instructor, ParseObject student) {
     final acl = ParseACL();
     acl.setPublicReadAccess(allowed: false);
     acl.setPublicWriteAccess(allowed: false);
     acl.setReadAccess(userId: instructor.objectId!, allowed: true);
     acl.setWriteAccess(userId: instructor.objectId!, allowed: true);
-    acl.setReadAccess(userId: student.objectId!, allowed: true);
+    if (student.objectId != null) {
+      acl.setReadAccess(userId: student.objectId!, allowed: true);
+    }
     return acl;
   }
 
