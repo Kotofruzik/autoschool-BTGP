@@ -1,71 +1,35 @@
-# Build outputs
-**/build/
-**/dist/
-*.so
-*.dylib
-*.dll
+```
+# Dependencies
+.pub/
+.build/
+.dart_tool/
 
-# Log files
+# Logs
 *.log
 
-# Environment variables
+# Environment
 .env
 .env.local
 *.env.*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
 
 # IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# Dependency directories
-node_modules/
-vendor/
-**/target/
-
-# Python specific
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.gcda
-*.gcno
-htmlcov/
-.hypothesis/
-.DS_Store
-Thumbs.db
-
-# Dart/Flutter specific
-.dart_tool/
-.packages
-.pub/
-build/
-*.iws
-*.ipr
-*.iml
-out/
-_derps/
-.dart-deps
-.dart-server/
-.DS_Store
-*.log
 *.tmp
-*.swp
-*~
 
-# Original rules preserved
-*.log
+# Build artifacts
+build/
+dist/
+target/
+```

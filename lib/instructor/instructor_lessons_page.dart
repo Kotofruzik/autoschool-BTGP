@@ -6,6 +6,7 @@ import '../services/lesson_service.dart';
 import 'package:autoschool_btgp/lesson/lesson_model.dart';
 import 'package:autoschool_btgp/lesson/lesson_detail_page.dart';
 import 'package:autoschool_btgp/lesson/circular_lesson_timer.dart';
+import 'select_student_for_lesson_page.dart';
 
 class InstructorLessonsPage extends StatefulWidget {
   @override
@@ -124,7 +125,10 @@ class _InstructorLessonsPageState extends State<InstructorLessonsPage> {
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.pushNamed(context, '/instructor-students');
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => SelectStudentForLessonPage()),
+          );
         },
         child: const Icon(Icons.add),
         tooltip: 'Назначить занятие',
