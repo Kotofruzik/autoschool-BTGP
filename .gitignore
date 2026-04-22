@@ -1,35 +1,33 @@
 ```
-# Dependencies
-.pub/
-.build/
-.dart_tool/
+# Build artifacts
+*.dart_tool/
+*.build/
+build/
 
-# Logs
+# Dependencies
+.pub-cache/
+pubspec.lock
+
+# Logs and temp files
 *.log
+*.tmp
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# IDE files
+# Editors
 .vscode/
 .idea/
 *.swp
 *.swo
-*.tmp
 
-# Build artifacts
-build/
-dist/
-target/
+# Coverage
+coverage/
+*.coverage
+
+# OS generated files
+.DS_Store
+Thumbs.db
 ```

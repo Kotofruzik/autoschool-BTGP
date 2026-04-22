@@ -11,7 +11,7 @@ class SelectStudentForLessonPage extends StatefulWidget {
 }
 
 class _SelectStudentForLessonPageState extends State<SelectStudentForLessonPage> {
-  List<ParseUser> _students = [];
+  List<ParseObject> _students = [];
   bool _isLoading = true;
   String? _error;
 
@@ -33,8 +33,8 @@ class _SelectStudentForLessonPageState extends State<SelectStudentForLessonPage>
 
       if (response.success && response.result != null) {
         final List<dynamic> results = response.result as List<dynamic>;
-        final List<ParseUser> students = results.map((json) {
-          final user = ParseUser(null, null, null);
+        final List<ParseObject> students = results.map((json) {
+          final user = ParseObject('_User');
           user.objectId = json['id'];
           user.set('surname', json['surname']);
           user.set('firstname', json['firstname']);
@@ -64,7 +64,7 @@ class _SelectStudentForLessonPageState extends State<SelectStudentForLessonPage>
     }
   }
 
-  String _getFullName(ParseUser user) {
+  String _getFullName(ParseObject user) {
     String surname = user.get('surname') ?? '';
     String firstname = user.get('firstname') ?? '';
     String patronymic = user.get('patronymic') ?? '';
@@ -135,13 +135,15 @@ class _SelectStudentForLessonPageState extends State<SelectStudentForLessonPage>
                         title: Text(name),
                         subtitle: Text(student.get('email') ?? ''),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () {
-                          Navigator.push(
+                        onTap: () async {
+                          // Ждем возврата со страницы создания занятия и обновляем список (если нужно)
+                          await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => CreateLessonPage(student: student),
                             ),
                           );
+                          // Можно добавить обновление списка студентов, если нужно
                         },
                       ),
                     );

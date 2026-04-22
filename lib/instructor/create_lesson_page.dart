@@ -8,7 +8,7 @@ import 'package:autoschool_btgp/services/auth_service.dart';
 import '../services/lesson_service.dart';
 
 class CreateLessonPage extends StatefulWidget {
-  final ParseUser student;
+  final ParseObject student;
   const CreateLessonPage({Key? key, required this.student}) : super(key: key);
 
   @override
@@ -158,7 +158,8 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${_lessonType == 'driving' ? 'Вождение' : 'Экзамен'} назначен'), backgroundColor: Colors.green),
       );
-      Navigator.pop(context);
+      // Возвращаемся на страницу занятий с флагом, что нужно обновить список
+      Navigator.pop(context, true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red),

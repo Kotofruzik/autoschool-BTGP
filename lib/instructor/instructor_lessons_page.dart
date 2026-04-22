@@ -124,11 +124,13 @@ class _InstructorLessonsPageState extends State<InstructorLessonsPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          // Ждем возврата со страницы создания/выбора и обновляем список
+          await Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => SelectStudentForLessonPage()),
           );
+          _loadLessons(); // Автоматическое обновление списка после возврата
         },
         child: const Icon(Icons.add),
         tooltip: 'Назначить занятие',
