@@ -155,6 +155,7 @@ class LessonService {
   Future<List<ParseObject>> getLessonsForStudent(ParseUser student) async {
     final query = QueryBuilder<ParseObject>(ParseObject('Lesson'))
       ..whereEqualTo('student', student.toPointer())
+      ..whereNotEqualTo('status', 'cancelled')
       ..orderByAscending('startTime');
 
     final response = await query.query();
@@ -169,6 +170,7 @@ class LessonService {
   Future<List<ParseObject>> getLessonsForInstructor(ParseUser instructor) async {
     final query = QueryBuilder<ParseObject>(ParseObject('Lesson'))
       ..whereEqualTo('instructor', instructor.toPointer())
+      ..whereNotEqualTo('status', 'cancelled')
       ..orderByAscending('startTime');
 
     final response = await query.query();
@@ -185,6 +187,49 @@ class LessonService {
     final response = await lesson.save();
     if (!response.success) {
       throw Exception(response.error?.message ?? 'Не удалось отменить занятие');
+    }
+  }
+
+  Future<void> notifyInstructorAboutDetach({
+    required String instructorId,
+    required String studentName,
+}) async {
+    try {
+      print('🔔 [PUSH] Отправка уведомления инструктору $instructorId об откреплении ученика...');
+
+      final url = Uri.parse('https://parseapi.back4app.com/functions/sendInstructorDetachNotification');
+
+      final payload = jsonEncode({
+        'instructorId' : instructorId,
+        'studentName' : studentName,
+      });
+
+      final user = await ParseUser.currentUser() as ParseUser?;
+      final sessionToken = user?.sessionToken;
+
+      if (sessionToken == null) {
+        print('[PUSH] Пользователь не авторизован, уведомление не отправлено');
+        return;
+      }
+
+      final response = await http.post(
+        url,
+        headers: {
+          'X-Parse-Application-Id': 'qCxbZic6eqme0pvScG5jLoCxDUxztB9FGuiXhEiy',
+          'X-Parse-Client-Key': '50yEotCNReUkwSd7nhVmhYnoZspmLcbizp1GJC3v',
+          'X-Parse-Session-Token': sessionToken,
+          'Content-Type': 'application/json',
+        },
+        body: payload,
+      );
+
+      if (response.statusCode == 200) {
+        print('[PUSH] Уведомление инструктору успешно отправлено через HTTP');
+      } else {
+        print('[PUSH] Ошибка сервера: (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      print('[PUSH] Исключение при отправке уведомления инструктору: $e');
     }
   }
 

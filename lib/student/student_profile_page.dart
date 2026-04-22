@@ -65,53 +65,78 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Открепление от инструктора'),
-        content: const Text('Вы уверены, что хотите открепиться от текущего инструктора? Все назначенные занятия будут отменены.'),
+        content: const Text('Вы уверены, что хотите открепиться? Все запланированные занятия будут отменены и перемещены в архив.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Открепиться'),
+            child: const Text('Открепить'),
           ),
         ],
       ),
     );
 
-    if (confirm != true) {
-      print('⏹️ Пользователь отменил открепление');
-      return;
-    }
+    if (confirm != true) return;
 
     final auth = Provider.of<AuthService>(context, listen: false);
     final user = auth.currentUser;
-    if (user == null) {
-      print('❌ Пользователь не авторизован');
-      return;
-    }
+    if (user == null) return;
 
     final instructorId = user.get('instructorId') as String?;
+
     if (instructorId != null) {
       print('🗑️ Отменяем занятия с инструктором $instructorId');
       final lessonService = LessonService();
+
+      // Получаем все занятия студента
       final allLessons = await lessonService.getLessonsForStudent(user);
+
+      // Фильтруем только активные (не отмененные и не завершенные) с этим инструктором
       final lessonsToCancel = allLessons.where((obj) {
-        final lesson = Lesson.fromParse(obj);
-        final lessonInstructor = lesson.instructor;
+        final lessonInstructor = obj.get<ParseUser>('instructor');
+        final status = obj.get<String>('status');
         return lessonInstructor != null &&
             lessonInstructor.objectId == instructorId &&
-            lesson.status != 'cancelled' &&
-            lesson.status != 'completed';
+            status != 'cancelled' &&
+            status != 'completed';
       }).toList();
 
+      print('📋 Найдено активных занятий для отмены: ${lessonsToCancel.length}');
+
+      int cancelledCount = 0;
       for (final lessonObj in lessonsToCancel) {
-        lessonObj.set('status', 'cancelled');
-        await lessonObj.save();
+        try {
+          lessonObj.set('status', 'cancelled');
+          final response = await lessonObj.save();
+          if (response.success) {
+            cancelledCount++;
+            print('✅ Занятие ${lessonObj.objectId} отменено');
+          }
+        } catch (e) {
+          print('❌ Ошибка отмены занятия: $e');
+        }
       }
-      print('✅ Занятия отменены: ${lessonsToCancel.length}');
+
+      // 🔔 Отправляем уведомление инструктору
+      final studentName = '${user.get('surname') ?? ''} ${user.get('firstname') ?? ''}'.trim();
+      await lessonService.notifyInstructorAboutDetach(
+        instructorId: instructorId,
+        studentName: studentName.isNotEmpty ? studentName : (user.username ?? 'Ученик'),
+      );
     }
 
+    // Удаляем привязку инструктора
     user.set('instructorId', null);
-    await user.save();
-    print('💾 Пользователь сохранён без инструктора');
+    final saveResponse = await user.save();
+
+    if (!saveResponse.success) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ошибка при сохранении профиля')),
+        );
+      }
+      return;
+    }
 
     auth.setCurrentUser(user);
 
@@ -119,21 +144,27 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       setState(() {
         _instructor = null;
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Вы открепились от инструктора. Занятия отменены и добавлены в архив.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // 🔄 ВАЖНО: Принудительно обновляем список занятий на главном экране,
+      // если текущая страница является частью навигации, которая может триггерить обновление.
+      // Но так как мы в профиле, нам нужно просто вернуться назад с флагом успеха.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        // Возвращаемся назад с результатом true, чтобы главный экран обновился
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context, true);
+        } else {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        }
+      });
     }
-
-    // 🔧 Исправлено: откладываем навигацию до следующего кадра
-    // и проверяем, можно ли сделать pop
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      if (Navigator.canPop(context)) {
-        print('🔃 Выполняем Navigator.pop');
-        Navigator.pop(context, true);
-      } else {
-        print('⚠️ Нечего pop\'ить, возвращаемся к корню');
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-      }
-    });
   }
 
   Future<void> _scanQrCode() async {
