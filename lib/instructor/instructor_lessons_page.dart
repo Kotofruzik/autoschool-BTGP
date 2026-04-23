@@ -6,6 +6,7 @@ import '../services/lesson_service.dart';
 import 'package:autoschool_btgp/lesson/lesson_model.dart';
 import 'package:autoschool_btgp/lesson/lesson_detail_page.dart';
 import 'package:autoschool_btgp/lesson/circular_lesson_timer.dart';
+import 'calendar_schedule_page.dart';
 
 class InstructorLessonsPage extends StatefulWidget {
   @override
@@ -122,6 +123,20 @@ class _InstructorLessonsPageState extends State<InstructorLessonsPage> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('Занятия'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_today),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => CalendarSchedulePage(isInstructor: true)),
+              );
+            },
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.pushNamed(context, '/instructor-students');

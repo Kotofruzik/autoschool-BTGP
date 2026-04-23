@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'student_my_lessons_page.dart';
 import 'student_chats_page.dart';
 import 'student_profile_page.dart';
-import '../instructor/calendar_schedule_page.dart';
 
 class StudentHomePage extends StatefulWidget {
   @override
@@ -42,19 +41,6 @@ class _StudentHomePageState extends State<StudentHomePage> {
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'student_calendar',
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => CalendarSchedulePage(isInstructor: false)),
-          );
-        },
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.blue,
-        icon: const Icon(Icons.calendar_today),
-        label: const Text('Календарь'),
       ),
     );
   }

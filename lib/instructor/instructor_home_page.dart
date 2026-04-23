@@ -3,7 +3,6 @@ import 'instructor_lessons_page.dart';
 import 'instructor_students_page.dart';
 import 'instructor_chats_page.dart';
 import 'instructor_profile_page.dart';
-import 'calendar_schedule_page.dart';
 
 class InstructorHomePage extends StatefulWidget {
   @override
@@ -44,19 +43,6 @@ class _InstructorHomePageState extends State<InstructorHomePage> {
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'instructor_calendar',
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => CalendarSchedulePage(isInstructor: true)),
-          );
-        },
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.blue,
-        icon: const Icon(Icons.calendar_today),
-        label: const Text('Календарь'),
       ),
     );
   }
