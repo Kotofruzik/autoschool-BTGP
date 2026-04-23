@@ -10,7 +10,7 @@ import '../models/car_model.dart';
 class CreateLessonPage extends StatefulWidget {
   final ParseUser? student;
   final DateTime? selectedDate;
-  final bool skipDateStep; // Флаг для пропуска шага выбора даты
+  final bool skipDateStep;
 
   const CreateLessonPage({Key? key, this.student, this.selectedDate, this.skipDateStep = false}) : super(key: key);
 
@@ -24,48 +24,48 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   final LessonService _lessonService = LessonService();
   final CarService _carService = CarService();
 
-  // Шаг 0: Тип занятия
+  // Конфигурация шагов
+  late final List<Map<String, dynamic>> _steps;
+  
+  // Данные
   String _lessonType = 'driving';
-
-  // Шаг 1: Выбор студента
   ParseUser? _selectedStudent;
   List<ParseUser> _allStudents = [];
   bool _isLoadingStudents = false;
-
-  // Шаг 2: Дата и время
   DateTime _startDate = DateTime.now().add(const Duration(hours: 1));
   int _durationMinutes = 60;
   DateTime get _endDate => _startDate.add(Duration(minutes: _durationMinutes));
-
-  // Шаг 3: Выбор автомобиля из автопарка
   List<Car> _instructorCars = [];
   Car? _selectedCar;
   bool _isLoadingCars = false;
-
-  // Комментарий
   final TextEditingController _commentController = TextEditingController();
   bool _isCreating = false;
-
-  // Определяем начальный шаг в зависимости от флага skipDateStep
-  int get _initialStep => widget.skipDateStep ? 1 : 0;
 
   @override
   void initState() {
     super.initState();
-    if (widget.student != null) {
-      _selectedStudent = widget.student;
-    }
+    if (widget.student != null) _selectedStudent = widget.student;
     if (widget.selectedDate != null) {
-      _startDate = DateTime(
-        widget.selectedDate!.year,
-        widget.selectedDate!.month,
-        widget.selectedDate!.day,
-        12,
-        0,
-      );
+      _startDate = DateTime(widget.selectedDate!.year, widget.selectedDate!.month, widget.selectedDate!.day, 12, 0);
     }
-    // Если skipDateStep=true, начинаем с шага 1 (выбор ученика), иначе с шага 0 (тип занятия)
-    _currentStep = widget.skipDateStep ? 1 : 0;
+    
+    // Инициализация шагов в зависимости от skipDateStep
+    _steps = widget.skipDateStep
+        ? [
+            {'icon': Icons.person, 'label': 'Ученик', 'widget': _buildStudentStep},
+            {'icon': Icons.access_time, 'label': 'Время', 'widget': _buildDateTimeStep},
+            {'icon': Icons.directions_car, 'label': 'Авто', 'widget': _buildCarStep},
+            {'icon': Icons.comment, 'label': 'Коммент', 'widget': _buildCommentStep},
+          ]
+        : [
+            {'icon': Icons.category, 'label': 'Тип', 'widget': _buildTypeStep},
+            {'icon': Icons.person, 'label': 'Ученик', 'widget': _buildStudentStep},
+            {'icon': Icons.access_time, 'label': 'Время', 'widget': _buildDateTimeStep},
+            {'icon': Icons.directions_car, 'label': 'Авто', 'widget': _buildCarStep},
+            {'icon': Icons.comment, 'label': 'Коммент', 'widget': _buildCommentStep},
+          ];
+    
+    _currentStep = widget.skipDateStep ? 0 : 0;
     _loadData();
   }
 
@@ -77,10 +77,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
     setState(() => _isLoadingStudents = true);
     try {
       final instructor = Provider.of<AuthService>(context, listen: false).currentUser;
-      if (instructor == null) {
-        setState(() => _isLoadingStudents = false);
-        return;
-      }
+      if (instructor == null) return setState(() => _isLoadingStudents = false);
       final studentObjects = await _lessonService.getStudentsForInstructor(instructor);
       setState(() {
         _allStudents = studentObjects.whereType<ParseUser>().toList();
@@ -95,10 +92,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   Future<void> _loadInstructorCars() async {
     setState(() => _isLoadingCars = true);
     final instructor = Provider.of<AuthService>(context, listen: false).currentUser;
-    if (instructor == null) {
-      setState(() => _isLoadingCars = false);
-      return;
-    }
+    if (instructor == null) return setState(() => _isLoadingCars = false);
     try {
       final cars = await _carService.getCarsForInstructor(instructor);
       setState(() {
@@ -120,39 +114,20 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
 
   Future<void> _selectStartDate() async {
     final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _startDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      context: context, initialDate: _startDate,
+      firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
-      final TimeOfDay? time = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(_startDate),
-      );
+      final TimeOfDay? time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_startDate));
       if (time != null) {
-        setState(() {
-          _startDate = DateTime(
-            picked.year,
-            picked.month,
-            picked.day,
-            time.hour,
-            time.minute,
-          );
-        });
+        setState(() => _startDate = DateTime(picked.year, picked.month, picked.day, time.hour, time.minute));
       }
     }
   }
 
   void _nextStep() {
-    final totalSteps = widget.skipDateStep ? 3 : 4;
-    if (_currentStep < totalSteps) {
-      // Проверка валидации перед переходом
-      final studentStep = widget.skipDateStep ? 0 : 1;
-      final carStep = widget.skipDateStep ? 2 : 3;
-      if (_currentStep == studentStep && !_validateStudentStep()) return;
-      if (_currentStep == carStep && !_validateCarStep()) return;
-
+    if (_currentStep < _steps.length - 1) {
+      if (!_validateStep()) return;
       _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       setState(() => _currentStep++);
     } else {
@@ -160,12 +135,23 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
     }
   }
 
-  bool _validateStudentStep() {
-    if (_selectedStudent == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Выберите ученика из списка'), backgroundColor: Colors.red),
-      );
+  bool _validateStep() {
+    final isStudentStep = widget.skipDateStep ? _currentStep == 0 : _currentStep == 1;
+    final isCarStep = widget.skipDateStep ? _currentStep == 2 : _currentStep == 3;
+    
+    if (isStudentStep && _selectedStudent == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Выберите ученика'), backgroundColor: Colors.red));
       return false;
+    }
+    if (isCarStep) {
+      if (_instructorCars.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Добавьте автомобили в автопарк'), backgroundColor: Colors.amber));
+        return false;
+      }
+      if (_selectedCar == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Выберите автомобиль'), backgroundColor: Colors.red));
+        return false;
+      }
     }
     return true;
   }
@@ -177,70 +163,31 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
     }
   }
 
-  bool _validateCarStep() {
-    if (_instructorCars.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Сначала добавьте автомобили в автопарк в профиле инструктора'),
-          backgroundColor: Colors.amber,
-          duration: Duration(seconds: 4),
-        ),
-      );
-      return false;
-    }
-    if (_selectedCar == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Выберите автомобиль из списка'), backgroundColor: Colors.red),
-      );
-      return false;
-    }
-    return true;
-  }
-
   Future<void> _createLesson() async {
-    // Финальная проверка перед созданием
     if (_instructorCars.isEmpty || _selectedCar == null) {
-      if (!_validateCarStep()) return;
+      if (!_validateStep()) return;
     }
-
-    // Проверка студента
     final student = _selectedStudent ?? widget.student;
     if (student == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ошибка: студент не выбран'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Студент не выбран'), backgroundColor: Colors.red));
       return;
     }
 
     setState(() => _isCreating = true);
     final instructor = Provider.of<AuthService>(context, listen: false).currentUser;
-    if (instructor == null) {
-      setState(() => _isCreating = false);
-      return;
-    }
+    if (instructor == null) return setState(() => _isCreating = false);
 
     try {
       await _lessonService.createLesson(
-        type: _lessonType,
-        startTime: _startDate,
-        endTime: _endDate,
-        carBrand: _selectedCar!.brand,
-        carModel: _selectedCar!.model,
-        carNumber: _selectedCar!.number,
-        carPhotoUrl: _selectedCar!.photoUrl?.trim(),
-        comment: _commentController.text.isNotEmpty ? _commentController.text : null,
-        student: student,
-        instructor: instructor,
+        type: _lessonType, startTime: _startDate, endTime: _endDate,
+        carBrand: _selectedCar!.brand, carModel: _selectedCar!.model, carNumber: _selectedCar!.number,
+        carPhotoUrl: _selectedCar!.photoUrl?.trim(), comment: _commentController.text.isNotEmpty ? _commentController.text : null,
+        student: student, instructor: instructor,
       );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${_lessonType == 'driving' ? 'Вождение' : 'Экзамен'} назначен'), backgroundColor: Colors.green),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${_lessonType == 'driving' ? 'Вождение' : 'Экзамен'} назначен'), backgroundColor: Colors.green));
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red));
     } finally {
       setState(() => _isCreating = false);
     }
@@ -248,68 +195,38 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    // При skipDateStep у нас 4 шага (0-3), иначе 5 шагов (0-4)
-    final totalSteps = widget.skipDateStep ? 3 : 4;
-    final isLastStep = _currentStep == totalSteps;
+    final isLastStep = _currentStep == _steps.length - 1;
     final buttonText = isLastStep ? (_lessonType == 'driving' ? 'Назначить вождение' : 'Назначить экзамен') : 'Далее';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Назначить занятие'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Назначить занятие'), elevation: 0),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.blue, Colors.lightBlueAccent],
-          ),
-        ),
+        decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.blue, Colors.lightBlueAccent])),
         child: SafeArea(
           child: Column(
             children: [
-              // Индикатор шагов - показываем только нужные в зависимости от skipDateStep
+              // Индикатор шагов
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: widget.skipDateStep
-                      ? [
-                          _buildStepItem(0, Icons.person, 'Ученик'),
-                          Container(width: 20, height: 2, color: Colors.white30),
-                          _buildStepItem(1, Icons.access_time, 'Время'),
-                          Container(width: 20, height: 2, color: Colors.white30),
-                          _buildStepItem(2, Icons.directions_car, 'Авто'),
-                          Container(width: 20, height: 2, color: Colors.white30),
-                          _buildStepItem(3, Icons.comment, 'Коммент'),
-                        ]
-                      : [
-                          _buildStepItem(0, Icons.category, 'Тип'),
-                          Container(width: 20, height: 2, color: Colors.white30),
-                          _buildStepItem(1, Icons.person, 'Ученик'),
-                          Container(width: 20, height: 2, color: Colors.white30),
-                          _buildStepItem(2, Icons.access_time, 'Время'),
-                          Container(width: 20, height: 2, color: Colors.white30),
-                          _buildStepItem(3, Icons.directions_car, 'Авто'),
-                          Container(width: 20, height: 2, color: Colors.white30),
-                          _buildStepItem(4, Icons.comment, 'Коммент'),
-                        ],
+                  children: [
+                    for (int i = 0; i < _steps.length; i++) ...[
+                      _buildStepItem(i),
+                      if (i < _steps.length - 1) Container(width: 20, height: 2, color: Colors.white30),
+                    ],
+                  ],
                 ),
               ),
-
-              // Страницы с контентом - при skipDateStep первый шаг это выбор ученика
+              // Контент шагов
               Expanded(
                 child: PageView(
                   controller: _pageController,
                   physics: const NeverScrollableScrollPhysics(),
                   onPageChanged: (index) => setState(() => _currentStep = index),
-                  children: widget.skipDateStep
-                      ? [_buildStudentStepContent(), _buildDateTimeStep(), _buildCarStep(), _buildCommentStep()]
-                      : [_buildTypeStep(), _buildStudentStep(), _buildDateTimeStep(), _buildCarStep(), _buildCommentStep()],
+                  children: _steps.map((s) => s['widget']() as Widget).toList(),
                 ),
               ),
-
               // Кнопки навигации
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -333,9 +250,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                           foregroundColor: isLastStep ? Colors.white : Colors.blue,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: _isCreating
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                            : Text(buttonText, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        child: _isCreating ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(buttonText, style: const TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -348,23 +263,19 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
     );
   }
 
-  Widget _buildStepItem(int step, IconData icon, String label) {
+  Widget _buildStepItem(int step) {
     final isActive = _currentStep >= step;
+    final data = _steps[step];
     return Column(
       children: [
         AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: isActive ? Colors.blue : Colors.white.withOpacity(0.3),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
-          child: Icon(icon, color: isActive ? Colors.white : Colors.white70, size: 20),
+          width: 40, height: 40,
+          decoration: BoxDecoration(color: isActive ? Colors.blue : Colors.white.withOpacity(0.3), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+          child: Icon(data['icon'], color: isActive ? Colors.white : Colors.white70, size: 20),
         ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+        Text(data['label'], style: const TextStyle(color: Colors.white, fontSize: 12)),
       ],
     );
   }
@@ -459,54 +370,10 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
     );
   }
 
-  Widget _buildStudentStepContent() {
-    // Если студент уже передан (например, из профиля ученика), показываем его и пропускаем выбор
-    if (widget.student != null) {
-      final student = widget.student!;
-      final fullName = [
-        student.get('surname') ?? '',
-        student.get('firstname') ?? '',
-        student.get('patronymic') ?? ''
-      ].where((s) => s.isNotEmpty).join(' ');
-      
-      return ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            color: Colors.green.shade50,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.blue,
-                    child: const Icon(Icons.person, color: Colors.white, size: 30),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(fullName.isNotEmpty ? fullName : student.get('email') ?? 'Ученик', 
-                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(student.get('phone') ?? 'Телефон не указан', style: const TextStyle(color: Colors.grey)),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.check_circle, color: Colors.green, size: 32),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text('Этот ученик уже выбран. Нажмите "Далее" для продолжения.', 
-                     style: TextStyle(color: Colors.white70), textAlign: TextAlign.center),
-        ],
-      );
-    }
+  Widget _buildStudentStep() {
+    if (widget.student != null) return _buildSelectedStudentCard(widget.student!);
+    if (_selectedStudent != null) return _buildSelectedStudentCard(_selectedStudent!);
     
-    // Иначе показываем список студентов для выбора
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -521,37 +388,18 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                 const SizedBox(height: 16),
                 if (_isLoadingStudents)
                   const Center(child: CircularProgressIndicator())
-                else if (_allStudents.isEmpty) ...[
-                  const Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text('Нет учеников', style: TextStyle(color: Colors.grey)),
-                        SizedBox(height: 8),
-                        Text('Пока нет учеников, которым можно назначить занятие', 
-                             style: TextStyle(color: Colors.grey, fontSize: 14), textAlign: TextAlign.center),
-                      ],
-                    ),
-                  ),
-                ] else ...[
+                else if (_allStudents.isEmpty)
+                  const Center(child: Column(children: [Icon(Icons.people_outline, size: 64, color: Colors.grey), SizedBox(height: 16), Text('Нет учеников', style: TextStyle(color: Colors.grey))]))
+                else
                   for (final student in _allStudents)
                     ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: _selectedStudent?.objectId == student.objectId ? Colors.blue : Colors.grey.shade300,
-                        child: Icon(Icons.person, color: _selectedStudent?.objectId == student.objectId ? Colors.white : Colors.grey),
-                      ),
-                      title: Text([
-                        student.get('surname') ?? '',
-                        student.get('firstname') ?? '',
-                        student.get('patronymic') ?? ''
-                      ].where((s) => s.isNotEmpty).join(' ') || student.get('email') ?? 'Ученик'),
+                      leading: CircleAvatar(backgroundColor: _selectedStudent?.objectId == student.objectId ? Colors.blue : Colors.grey.shade300, child: Icon(Icons.person, color: _selectedStudent?.objectId == student.objectId ? Colors.white : Colors.grey)),
+                      title: Text([student.get('surname') ?? '', student.get('firstname') ?? '', student.get('patronymic') ?? ''].where((s) => s.isNotEmpty).join(' ') || student.get('email') ?? 'Ученик'),
                       subtitle: Text(student.get('phone') ?? 'Телефон не указан'),
                       selected: _selectedStudent?.objectId == student.objectId,
                       selectedTileColor: Colors.blue.shade50,
                       onTap: () => setState(() => _selectedStudent = student),
                     ),
-                ],
               ],
             ),
           ),
@@ -560,10 +408,25 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
     );
   }
 
+  Widget _buildSelectedStudentCard(ParseUser student) {
+    final fullName = [student.get('surname') ?? '', student.get('firstname') ?? '', student.get('patronymic') ?? ''].where((s) => s.isNotEmpty).join(' ');
+    return ListView(padding: const EdgeInsets.all(16), children: [
+      Card(color: Colors.green.shade50, child: Padding(padding: const EdgeInsets.all(16), child: Row(children: [
+        CircleAvatar(radius: 30, backgroundColor: Colors.blue, child: const Icon(Icons.person, color: Colors.white, size: 30)),
+        const SizedBox(width: 16),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(fullName.isNotEmpty ? fullName : student.get('email') ?? 'Ученик', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(student.get('phone') ?? 'Телефон не указан', style: const TextStyle(color: Colors.grey)),
+        ])),
+        const Icon(Icons.check_circle, color: Colors.green, size: 32),
+      ]))),
+      const SizedBox(height: 16),
+      const Text('Ученик выбран. Нажмите "Далее" для продолжения.', style: TextStyle(color: Colors.white70), textAlign: TextAlign.center),
+    ]);
+  }
+
   Widget _buildDateTimeStep() {
-    // Если дата была передана из календаря, показываем её без возможности изменения
     final isDateFromCalendar = widget.selectedDate != null && widget.skipDateStep;
-    
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -577,61 +440,21 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                 const Text('Дата и время', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 if (!isDateFromCalendar) ...[
-                  ListTile(
-                    leading: const Icon(Icons.calendar_today, color: Colors.blue),
-                    title: Text('${_startDate.day}.${_startDate.month}.${_startDate.year}'),
-                    subtitle: const Text('Выберите дату'),
-                    onTap: _selectStartDate,
-                  ),
+                  ListTile(leading: const Icon(Icons.calendar_today, color: Colors.blue), title: Text('${_startDate.day}.${_startDate.month}.${_startDate.year}'), subtitle: const Text('Выберите дату'), onTap: _selectStartDate),
                   const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.access_time, color: Colors.blue),
-                    title: Text('${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}'),
-                    subtitle: const Text('Выберите время начала'),
-                    onTap: _selectStartDate,
-                  ),
+                  ListTile(leading: const Icon(Icons.access_time, color: Colors.blue), title: Text('${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}'), subtitle: const Text('Выберите время начала'), onTap: _selectStartDate),
                 ] else ...[
-                  ListTile(
-                    leading: const Icon(Icons.calendar_today, color: Colors.green),
-                    title: Text('${_startDate.day}.${_startDate.month}.${_startDate.year}'),
-                    subtitle: const Text('Дата выбрана в календаре'),
-                  ),
+                  ListTile(leading: const Icon(Icons.calendar_today, color: Colors.green), title: Text('${_startDate.day}.${_startDate.month}.${_startDate.year}'), subtitle: const Text('Дата выбрана в календаре')),
                   const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.access_time, color: Colors.blue),
-                    title: Text('${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}'),
-                    subtitle: const Text('Выберите время начала'),
-                    onTap: () async {
-                      final TimeOfDay? time = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(_startDate),
-                      );
-                      if (time != null) {
-                        setState(() {
-                          _startDate = DateTime(
-                            _startDate.year,
-                            _startDate.month,
-                            _startDate.day,
-                            time.hour,
-                            time.minute,
-                          );
-                        });
-                      }
-                    },
-                  ),
+                  ListTile(leading: const Icon(Icons.access_time, color: Colors.blue), title: Text('${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}'), subtitle: const Text('Выберите время начала'), onTap: () async {
+                    final TimeOfDay? time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_startDate));
+                    if (time != null) setState(() => _startDate = DateTime(_startDate.year, _startDate.month, _startDate.day, time.hour, time.minute));
+                  }),
                 ],
                 const SizedBox(height: 8),
                 const Text('Длительность', style: TextStyle(fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
-                DropdownButtonFormField<int>(
-                  value: _durationMinutes,
-                  items: [30, 45, 60, 90, 120].map((v) => DropdownMenuItem(value: v, child: Text('$v мин'))).toList(),
-                  onChanged: (v) => setState(() => _durationMinutes = v!),
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                ),
+                DropdownButtonFormField<int>(value: _durationMinutes, items: [30, 45, 60, 90, 120].map((v) => DropdownMenuItem(value: v, child: Text('$v мин'))).toList(), onChanged: (v) => setState(() => _durationMinutes = v!), decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8))),
                 const SizedBox(height: 12),
                 Text('Окончание: ${_endDate.hour}:${_endDate.minute.toString().padLeft(2, '0')}'),
               ],
@@ -655,92 +478,28 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
               children: [
                 const Text('Выберите автомобиль', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
-
                 if (_isLoadingCars)
                   const Center(child: CircularProgressIndicator())
-                else if (_instructorCars.isEmpty) ...[
-                  // Состояние: нет автомобилей
-                  Column(
-                    children: [
-                      Icon(Icons.car_crash, size: 64, color: Colors.amber.shade700),
-                      const SizedBox(height: 16),
-                      Text(
-                        'У вас пока нет автомобилей в автопарке',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Добавьте автомобиль в разделе "Автопарк" в профиле инструктора, чтобы назначать занятия.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context); // Закрыть создание занятия
-                          // Здесь можно добавить навигацию на профиль, если известен маршрут
-                          // Например: Navigator.pushNamed(context, '/profile');
-                        },
-                        icon: const Icon(Icons.person),
-                        label: const Text('Перейти в профиль'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  // Состояние: есть список автомобилей
-                  Text(
-                    'Выберите автомобиль из вашего автопарка:',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                  ),
+                else if (_instructorCars.isEmpty)
+                  Column(children: [
+                    Icon(Icons.car_crash, size: 64, color: Colors.amber.shade700),
+                    const SizedBox(height: 16),
+                    Text('У вас пока нет автомобилей в автопарке', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text('Добавьте автомобиль в разделе \"Автопарк\" в профиле инструктора', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.person), label: const Text('Перейти в профиль'), style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12))),
+                  ])
+                else ...[
+                  Text('Выберите автомобиль из вашего автопарка:', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                   const SizedBox(height: 12),
-                  ..._instructorCars.map((car) => RadioListTile<Car>(
-                    value: car,
-                    groupValue: _selectedCar,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCar = value;
-                      });
-                    },
-                    title: Text('${car.brand} ${car.model}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(car.number),
-                    secondary: car.photoUrl != null && car.photoUrl!.isNotEmpty
-                        ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: CachedNetworkImage(
-                        imageUrl: car.photoUrl!.trim(),
-                        width: 60,
-                        height: 40,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          width: 60,
-                          height: 40,
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.image, size: 20, color: Colors.grey),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          width: 60,
-                          height: 40,
-                          color: Colors.blue.shade100,
-                          child: const Icon(Icons.directions_car, size: 24, color: Colors.blue),
-                        ),
-                      ),
-                    )
-                        : Container(
-                      width: 60,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.directions_car, size: 24, color: Colors.blue),
+                  for (final car in _instructorCars)
+                    RadioListTile<Car>(value: car, groupValue: _selectedCar, onChanged: (v) => setState(() => _selectedCar = v),
+                      title: Text('${car.brand} ${car.model}', style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text(car.number),
+                      secondary: car.photoUrl != null && car.photoUrl!.isNotEmpty
+                          ? ClipRRect(borderRadius: BorderRadius.circular(8), child: CachedNetworkImage(imageUrl: car.photoUrl!.trim(), width: 60, height: 40, fit: BoxFit.cover, placeholder: (_, __) => Container(width: 60, height: 40, color: Colors.grey[300], child: const Icon(Icons.image, size: 20, color: Colors.grey)), errorWidget: (_, __, ___) => Container(width: 60, height: 40, color: Colors.blue.shade100, child: const Icon(Icons.directions_car, size: 24, color: Colors.blue))))
+                          : Container(width: 60, height: 40, decoration: BoxDecoration(color: Colors.blue.shade100, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.directions_car, size: 24, color: Colors.blue)),
                     ),
-                  )),
                 ],
               ],
             ),
@@ -752,60 +511,28 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
 
   Widget _buildCommentStep() {
     final student = _selectedStudent ?? widget.student;
-    final studentName = student != null 
-        ? [student.get('surname') ?? '', student.get('firstname') ?? '', student.get('patronymic') ?? '']
-            .where((s) => s.isNotEmpty).join(' ')
-        : 'Не выбран';
+    final studentName = student != null ? [student.get('surname') ?? '', student.get('firstname') ?? '', student.get('patronymic') ?? ''].where((s) => s.isNotEmpty).join(' ') : 'Не выбран';
     
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Комментарий (необязательно)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _commentController,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    hintText: 'Дополнительная информация...',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.comment),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        Card(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Комментарий (необязательно)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          TextField(controller: _commentController, maxLines: 4, decoration: const InputDecoration(hintText: 'Дополнительная информация...', border: OutlineInputBorder(), prefixIcon: Icon(Icons.comment))),
+        ]))),
         const SizedBox(height: 16),
-        Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Краткая информация', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text('Ученик: $studentName'),
-                Text('Тип: ${_lessonType == 'driving' ? 'Вождение' : 'Экзамен'}'),
-                Text('Дата: ${_startDate.day}.${_startDate.month}.${_startDate.year}'),
-                Text('Время: ${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')} – ${_endDate.hour}:${_endDate.minute.toString().padLeft(2, '0')}'),
-                Text('Длительность: $_durationMinutes мин'),
-                if (_selectedCar != null) ...[
-                  Text('Автомобиль: ${_selectedCar!.brand} ${_selectedCar!.model}'),
-                  Text('Госномер: ${_selectedCar!.number}'),
-                ],
-                if (_commentController.text.isNotEmpty) Text('Комментарий: ${_commentController.text}'),
-              ],
-            ),
-          ),
-        ),
+        Card(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Краткая информация', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text('Ученик: $studentName'),
+          Text('Тип: ${_lessonType == 'driving' ? 'Вождение' : 'Экзамен'}'),
+          Text('Дата: ${_startDate.day}.${_startDate.month}.${_startDate.year}'),
+          Text('Время: ${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')} – ${_endDate.hour}:${_endDate.minute.toString().padLeft(2, '0')}'),
+          Text('Длительность: $_durationMinutes мин'),
+          if (_selectedCar != null) ...[Text('Автомобиль: ${_selectedCar!.brand} ${_selectedCar!.model}'), Text('Госномер: ${_selectedCar!.number}')],
+          if (_commentController.text.isNotEmpty) Text('Комментарий: ${_commentController.text}'),
+        ]))),
       ],
     );
   }
