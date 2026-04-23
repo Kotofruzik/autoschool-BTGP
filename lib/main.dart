@@ -13,6 +13,7 @@ import 'package:autoschool_btgp/services/auth_service.dart';
 import 'package:autoschool_btgp/student/student_home_page.dart';
 import 'package:autoschool_btgp/instructor/instructor_home_page.dart';
 import 'package:autoschool_btgp/admin/admin_home_page.dart';
+import 'package:autoschool_btgp/instructor/create_lesson_page.dart';
 import 'dart:convert';
 
 @pragma('vm:entry-point')
@@ -140,6 +141,7 @@ class MyApp extends StatelessWidget {
           '/login': (context) => LoginPage(),
           '/register': (context) => RegisterPage(),
           '/photo-upload': (context) => PhotoUploadPage(),
+          '/create-lesson': (context) => CreateLessonPage(),
         },
       ),
     );

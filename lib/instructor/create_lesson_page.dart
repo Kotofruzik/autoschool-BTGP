@@ -11,8 +11,10 @@ import '../services/car_service.dart';
 import '../models/car_model.dart';
 
 class CreateLessonPage extends StatefulWidget {
-  final ParseUser student;
-  const CreateLessonPage({Key? key, required this.student}) : super(key: key);
+  final ParseUser? student;
+  final DateTime? selectedDate;
+  
+  const CreateLessonPage({Key? key, this.student, this.selectedDate}) : super(key: key);
 
   @override
   _CreateLessonPageState createState() => _CreateLessonPageState();
@@ -54,6 +56,16 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   @override
   void initState() {
     super.initState();
+    // Если передана дата из календаря, используем её
+    if (widget.selectedDate != null) {
+      _startDate = DateTime(
+        widget.selectedDate!.year,
+        widget.selectedDate!.month,
+        widget.selectedDate!.day,
+        12, // полдень по умолчанию
+        0,
+      );
+    }
     _loadInstructorCars();
   }
 

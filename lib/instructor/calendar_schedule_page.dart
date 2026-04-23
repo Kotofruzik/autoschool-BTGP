@@ -185,7 +185,17 @@ class _CalendarSchedulePageState extends State<CalendarSchedulePage> {
       floatingActionButton: widget.isInstructor
           ? FloatingActionButton.extended(
               onPressed: () {
-                Navigator.pushNamed(context, '/instructor-students');
+                if (_selectedDay != null) {
+                  Navigator.pushNamed(
+                    context,
+                    '/create-lesson',
+                    arguments: {'selectedDate': _selectedDay},
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Выберите дату для назначения занятия')),
+                  );
+                }
               },
               backgroundColor: Colors.white,
               foregroundColor: Colors.blue,
