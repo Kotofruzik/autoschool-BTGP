@@ -205,7 +205,7 @@ class LessonService {
           if (!studentIds.contains(studentData.objectId)) {
             studentIds.add(studentData.objectId!);
             // Создаём ParseUser из данных
-            final student = ParseUser()
+            final student = ParseUser.forQuery()
               ..objectId = studentData.objectId
               ..set('surname', studentData.get('surname') ?? '')
               ..set('firstname', studentData.get('firstname') ?? '')

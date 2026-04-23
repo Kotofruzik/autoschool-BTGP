@@ -394,7 +394,13 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                   for (final student in _allStudents)
                     ListTile(
                       leading: CircleAvatar(backgroundColor: _selectedStudent?.objectId == student.objectId ? Colors.blue : Colors.grey.shade300, child: Icon(Icons.person, color: _selectedStudent?.objectId == student.objectId ? Colors.white : Colors.grey)),
-                      title: Text([student.get('surname') ?? '', student.get('firstname') ?? '', student.get('patronymic') ?? ''].where((s) => s.isNotEmpty).join(' ') || student.get('email') ?? 'Ученик'),
+                      title: Text(() {
+                        final parts = [student.get('surname'), student.get('firstname'), student.get('patronymic')]
+                            .where((s) => s != null && (s as String).isNotEmpty)
+                            .cast<String>()
+                            .toList();
+                        return parts.isNotEmpty ? parts.join(' ') : (student.get('email') ?? 'Ученик');
+                      }()),
                       subtitle: Text(student.get('phone') ?? 'Телефон не указан'),
                       selected: _selectedStudent?.objectId == student.objectId,
                       selectedTileColor: Colors.blue.shade50,
