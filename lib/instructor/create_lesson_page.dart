@@ -29,6 +29,8 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
 
   // Шаг 1: Выбор студента
   ParseUser? _selectedStudent;
+  List<ParseUser> _allStudents = [];
+  bool _isLoadingStudents = false;
 
   // Шаг 2: Дата и время
   DateTime _startDate = DateTime.now().add(const Duration(hours: 1));
@@ -42,44 +44,43 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
 
   // Комментарий
   final TextEditingController _commentController = TextEditingController();
-
   bool _isCreating = false;
+
+  // Определяем начальный шаг в зависимости от флага skipDateStep
+  int get _initialStep => widget.skipDateStep ? 1 : 0;
 
   @override
   void initState() {
     super.initState();
-    // Если передан студент (например, из профиля ученика), используем его
     if (widget.student != null) {
       _selectedStudent = widget.student;
     }
-    // Если передана дата из календаря, используем её
     if (widget.selectedDate != null) {
       _startDate = DateTime(
         widget.selectedDate!.year,
         widget.selectedDate!.month,
         widget.selectedDate!.day,
-        12, // полдень по умолчанию
+        12,
         0,
       );
     }
-    _loadInstructorCars();
-    _loadStudents();
+    // Если skipDateStep=true, начинаем с шага 1 (выбор ученика), иначе с шага 0 (тип занятия)
+    _currentStep = widget.skipDateStep ? 1 : 0;
+    _loadData();
   }
 
-  List<ParseUser> _allStudents = [];
-  bool _isLoadingStudents = false;
+  Future<void> _loadData() async {
+    await Future.wait([_loadInstructorCars(), _loadStudents()]);
+  }
 
   Future<void> _loadStudents() async {
     setState(() => _isLoadingStudents = true);
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final instructor = authService.currentUser;
+      final instructor = Provider.of<AuthService>(context, listen: false).currentUser;
       if (instructor == null) {
         setState(() => _isLoadingStudents = false);
         return;
       }
-
-      // Получаем всех студентов, которые прикреплены к этому инструктору
       final studentObjects = await _lessonService.getStudentsForInstructor(instructor);
       setState(() {
         _allStudents = studentObjects.whereType<ParseUser>().toList();
@@ -98,7 +99,6 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
       setState(() => _isLoadingCars = false);
       return;
     }
-
     try {
       final cars = await _carService.getCarsForInstructor(instructor);
       setState(() {
@@ -145,10 +145,13 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   }
 
   void _nextStep() {
-    if (_currentStep < 4) {
+    final totalSteps = widget.skipDateStep ? 3 : 4;
+    if (_currentStep < totalSteps) {
       // Проверка валидации перед переходом
-      if (_currentStep == 1 && !_validateStudentStep()) return;
-      if (_currentStep == 3 && !_validateCarStep()) return;
+      final studentStep = widget.skipDateStep ? 0 : 1;
+      final carStep = widget.skipDateStep ? 2 : 3;
+      if (_currentStep == studentStep && !_validateStudentStep()) return;
+      if (_currentStep == carStep && !_validateCarStep()) return;
 
       _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       setState(() => _currentStep++);
@@ -243,24 +246,11 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
     }
   }
 
-  Widget _buildStepIcon(int step, IconData icon) {
-    final isActive = _currentStep >= step;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: isActive ? Colors.blue : Colors.white.withOpacity(0.3),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-      ),
-      child: Icon(icon, color: isActive ? Colors.white : Colors.white70, size: 20),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isLastStep = _currentStep == 4;
+    // При skipDateStep у нас 4 шага (0-3), иначе 5 шагов (0-4)
+    final totalSteps = widget.skipDateStep ? 3 : 4;
+    final isLastStep = _currentStep == totalSteps;
     final buttonText = isLastStep ? (_lessonType == 'driving' ? 'Назначить вождение' : 'Назначить экзамен') : 'Далее';
 
     return Scaffold(
@@ -279,68 +269,44 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
         child: SafeArea(
           child: Column(
             children: [
-              // Индикатор шагов (иконки)
+              // Индикатор шагов - показываем только нужные в зависимости от skipDateStep
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Column(
-                      children: [
-                        _buildStepIcon(0, Icons.category),
-                        const SizedBox(height: 4),
-                        const Text('Тип', style: TextStyle(color: Colors.white, fontSize: 12)),
-                      ],
-                    ),
-                    Container(width: 20, height: 2, color: Colors.white30),
-                    Column(
-                      children: [
-                        _buildStepIcon(1, Icons.person),
-                        const SizedBox(height: 4),
-                        const Text('Ученик', style: TextStyle(color: Colors.white, fontSize: 12)),
-                      ],
-                    ),
-                    Container(width: 20, height: 2, color: Colors.white30),
-                    Column(
-                      children: [
-                        _buildStepIcon(2, Icons.access_time),
-                        const SizedBox(height: 4),
-                        const Text('Время', style: TextStyle(color: Colors.white, fontSize: 12)),
-                      ],
-                    ),
-                    Container(width: 20, height: 2, color: Colors.white30),
-                    Column(
-                      children: [
-                        _buildStepIcon(3, Icons.directions_car),
-                        const SizedBox(height: 4),
-                        const Text('Авто', style: TextStyle(color: Colors.white, fontSize: 12)),
-                      ],
-                    ),
-                    Container(width: 20, height: 2, color: Colors.white30),
-                    Column(
-                      children: [
-                        _buildStepIcon(4, Icons.comment),
-                        const SizedBox(height: 4),
-                        const Text('Коммент', style: TextStyle(color: Colors.white, fontSize: 12)),
-                      ],
-                    ),
-                  ],
+                  children: widget.skipDateStep
+                      ? [
+                          _buildStepItem(0, Icons.person, 'Ученик'),
+                          Container(width: 20, height: 2, color: Colors.white30),
+                          _buildStepItem(1, Icons.access_time, 'Время'),
+                          Container(width: 20, height: 2, color: Colors.white30),
+                          _buildStepItem(2, Icons.directions_car, 'Авто'),
+                          Container(width: 20, height: 2, color: Colors.white30),
+                          _buildStepItem(3, Icons.comment, 'Коммент'),
+                        ]
+                      : [
+                          _buildStepItem(0, Icons.category, 'Тип'),
+                          Container(width: 20, height: 2, color: Colors.white30),
+                          _buildStepItem(1, Icons.person, 'Ученик'),
+                          Container(width: 20, height: 2, color: Colors.white30),
+                          _buildStepItem(2, Icons.access_time, 'Время'),
+                          Container(width: 20, height: 2, color: Colors.white30),
+                          _buildStepItem(3, Icons.directions_car, 'Авто'),
+                          Container(width: 20, height: 2, color: Colors.white30),
+                          _buildStepItem(4, Icons.comment, 'Коммент'),
+                        ],
                 ),
               ),
 
-              // Страницы с контентом
+              // Страницы с контентом - при skipDateStep первый шаг это выбор ученика
               Expanded(
                 child: PageView(
                   controller: _pageController,
                   physics: const NeverScrollableScrollPhysics(),
                   onPageChanged: (index) => setState(() => _currentStep = index),
-                  children: [
-                    _buildTypeStep(),
-                    _buildStudentStep(),
-                    _buildDateTimeStep(),
-                    _buildCarStep(),
-                    _buildCommentStep(),
-                  ],
+                  children: widget.skipDateStep
+                      ? [_buildStudentStepContent(), _buildDateTimeStep(), _buildCarStep(), _buildCommentStep()]
+                      : [_buildTypeStep(), _buildStudentStep(), _buildDateTimeStep(), _buildCarStep(), _buildCommentStep()],
                 ),
               ),
 
@@ -349,19 +315,16 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    if (_currentStep > 0)
+                    if (_currentStep > 0) ...[
                       Expanded(
                         child: OutlinedButton(
                           onPressed: _previousStep,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
+                          style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white), padding: const EdgeInsets.symmetric(vertical: 12)),
                           child: const Text('Назад'),
                         ),
                       ),
-                    if (_currentStep > 0) const SizedBox(width: 12),
+                      const SizedBox(width: 12),
+                    ],
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _isCreating ? null : _nextStep,
@@ -382,6 +345,27 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStepItem(int step, IconData icon, String label) {
+    final isActive = _currentStep >= step;
+    return Column(
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: isActive ? Colors.blue : Colors.white.withOpacity(0.3),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          child: Icon(icon, color: isActive ? Colors.white : Colors.white70, size: 20),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+      ],
     );
   }
 
@@ -447,7 +431,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
             ),
           ),
         ),
-        if (widget.selectedDate != null && widget.skipDateStep) ...[
+        if (widget.selectedDate != null) ...[
           const SizedBox(height: 16),
           Card(
             color: Colors.green.shade50,
@@ -475,7 +459,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
     );
   }
 
-  Widget _buildStudentStep() {
+  Widget _buildStudentStepContent() {
     // Если студент уже передан (например, из профиля ученика), показываем его и пропускаем выбор
     if (widget.student != null) {
       final student = widget.student!;
