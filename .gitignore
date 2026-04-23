@@ -1,69 +1,43 @@
 ```
-# Build artifacts
-*.class
-*.o
-*.obj
-*.exe
-*.dll
-*.so
-*.a
-*.out
-build/
-dist/
-
 # Dependencies
-node_modules/
-venv/
-.venv/
-__pycache__/
-.mypy_cache/
-.pytest_cache/
-target/
-.gradle/
+.pub/
+.buildlog
+.flutter-plugins
+.flutter-plugin-dependencies
+.packages
 
-# Editor/IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
+# Generated plugin code
+flutter/
+android/.gradle
+android/.gradle
+ios/.symlinks
+**/ios/.symlinks
+
+# Distribution / packaging
+**/build/
+**/ios/Flutter/.last_build_id
+
+# Flutter/Dart/Pub related
+**/doc/api/
+
+# Android related
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+
+# iOS related
+**/ios/Flutter/.last_build_id
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# Web related
+**/web/**/generated_plugin_registrant.*
+
+# Temporary files
 *.tmp
-
-# System files
-.DS_Store
-Thumbs.db
-.env
-.env.local
-*.env.*
-
-# Logs
+*.temp
 *.log
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
 ```

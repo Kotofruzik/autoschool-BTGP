@@ -27,12 +27,15 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   // Шаг 0: Тип занятия
   String _lessonType = 'driving';
 
-  // Шаг 1: Дата и время
+  // Шаг 1: Выбор студента
+  ParseUser? _selectedStudent;
+
+  // Шаг 2: Дата и время
   DateTime _startDate = DateTime.now().add(const Duration(hours: 1));
   int _durationMinutes = 60;
   DateTime get _endDate => _startDate.add(Duration(minutes: _durationMinutes));
 
-  // Шаг 2: Выбор автомобиля из автопарка
+  // Шаг 3: Выбор автомобиля из автопарка
   List<Car> _instructorCars = [];
   Car? _selectedCar;
   bool _isLoadingCars = false;
@@ -45,7 +48,11 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    // Если передана дата из календаря, используем её и пропускаем шаг выбора даты
+    // Если передан студент (например, из профиля ученика), используем его
+    if (widget.student != null) {
+      _selectedStudent = widget.student;
+    }
+    // Если передана дата из календаря, используем её
     if (widget.selectedDate != null) {
       _startDate = DateTime(
         widget.selectedDate!.year,
@@ -54,15 +61,34 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
         12, // полдень по умолчанию
         0,
       );
-      // Если установлен флаг skipDateStep, начинаем сразу с шага выбора автомобиля
-      if (widget.skipDateStep) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _pageController.jumpToPage(2);
-          setState(() => _currentStep = 2);
-        });
-      }
     }
     _loadInstructorCars();
+    _loadStudents();
+  }
+
+  List<ParseUser> _allStudents = [];
+  bool _isLoadingStudents = false;
+
+  Future<void> _loadStudents() async {
+    setState(() => _isLoadingStudents = true);
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final instructor = authService.currentUser;
+      if (instructor == null) {
+        setState(() => _isLoadingStudents = false);
+        return;
+      }
+
+      // Получаем всех студентов, которые прикреплены к этому инструктору
+      final studentObjects = await _lessonService.getStudentsForInstructor(instructor);
+      setState(() {
+        _allStudents = studentObjects.whereType<ParseUser>().toList();
+        _isLoadingStudents = false;
+      });
+    } catch (e) {
+      print('Ошибка загрузки студентов: $e');
+      setState(() => _isLoadingStudents = false);
+    }
   }
 
   Future<void> _loadInstructorCars() async {
@@ -119,15 +145,26 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   }
 
   void _nextStep() {
-    if (_currentStep < 3) {
+    if (_currentStep < 4) {
       // Проверка валидации перед переходом
-      if (_currentStep == 2 && !_validateCarStep()) return;
+      if (_currentStep == 1 && !_validateStudentStep()) return;
+      if (_currentStep == 3 && !_validateCarStep()) return;
 
       _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       setState(() => _currentStep++);
     } else {
       _createLesson();
     }
+  }
+
+  bool _validateStudentStep() {
+    if (_selectedStudent == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Выберите ученика из списка'), backgroundColor: Colors.red),
+      );
+      return false;
+    }
+    return true;
   }
 
   void _previousStep() {
@@ -164,7 +201,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
     }
 
     // Проверка студента
-    final student = widget.student;
+    final student = _selectedStudent ?? widget.student;
     if (student == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ошибка: студент не выбран'), backgroundColor: Colors.red),
@@ -223,7 +260,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    final isLastStep = _currentStep == 3;
+    final isLastStep = _currentStep == 4;
     final buttonText = isLastStep ? (_lessonType == 'driving' ? 'Назначить вождение' : 'Назначить экзамен') : 'Далее';
 
     return Scaffold(
@@ -258,7 +295,15 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                     Container(width: 20, height: 2, color: Colors.white30),
                     Column(
                       children: [
-                        _buildStepIcon(1, Icons.calendar_today),
+                        _buildStepIcon(1, Icons.person),
+                        const SizedBox(height: 4),
+                        const Text('Ученик', style: TextStyle(color: Colors.white, fontSize: 12)),
+                      ],
+                    ),
+                    Container(width: 20, height: 2, color: Colors.white30),
+                    Column(
+                      children: [
+                        _buildStepIcon(2, Icons.access_time),
                         const SizedBox(height: 4),
                         const Text('Время', style: TextStyle(color: Colors.white, fontSize: 12)),
                       ],
@@ -266,7 +311,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                     Container(width: 20, height: 2, color: Colors.white30),
                     Column(
                       children: [
-                        _buildStepIcon(2, Icons.directions_car),
+                        _buildStepIcon(3, Icons.directions_car),
                         const SizedBox(height: 4),
                         const Text('Авто', style: TextStyle(color: Colors.white, fontSize: 12)),
                       ],
@@ -274,7 +319,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                     Container(width: 20, height: 2, color: Colors.white30),
                     Column(
                       children: [
-                        _buildStepIcon(3, Icons.comment),
+                        _buildStepIcon(4, Icons.comment),
                         const SizedBox(height: 4),
                         const Text('Коммент', style: TextStyle(color: Colors.white, fontSize: 12)),
                       ],
@@ -291,6 +336,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                   onPageChanged: (index) => setState(() => _currentStep = index),
                   children: [
                     _buildTypeStep(),
+                    _buildStudentStep(),
                     _buildDateTimeStep(),
                     _buildCarStep(),
                     _buildCommentStep(),
@@ -401,11 +447,139 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
             ),
           ),
         ),
+        if (widget.selectedDate != null && widget.skipDateStep) ...[
+          const SizedBox(height: 16),
+          Card(
+            color: Colors.green.shade50,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 32),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Дата уже выбрана', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                        Text('${widget.selectedDate!.day}.${widget.selectedDate!.month}.${widget.selectedDate!.year}', style: const TextStyle(color: Colors.green)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildStudentStep() {
+    // Если студент уже передан (например, из профиля ученика), показываем его и пропускаем выбор
+    if (widget.student != null) {
+      final student = widget.student!;
+      final fullName = [
+        student.get('surname') ?? '',
+        student.get('firstname') ?? '',
+        student.get('patronymic') ?? ''
+      ].where((s) => s.isNotEmpty).join(' ');
+      
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            color: Colors.green.shade50,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.blue,
+                    child: const Icon(Icons.person, color: Colors.white, size: 30),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(fullName.isNotEmpty ? fullName : student.get('email') ?? 'Ученик', 
+                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(student.get('phone') ?? 'Телефон не указан', style: const TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.check_circle, color: Colors.green, size: 32),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text('Этот ученик уже выбран. Нажмите "Далее" для продолжения.', 
+                     style: TextStyle(color: Colors.white70), textAlign: TextAlign.center),
+        ],
+      );
+    }
+    
+    // Иначе показываем список студентов для выбора
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Выберите ученика', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                if (_isLoadingStudents)
+                  const Center(child: CircularProgressIndicator())
+                else if (_allStudents.isEmpty) ...[
+                  const Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('Нет учеников', style: TextStyle(color: Colors.grey)),
+                        SizedBox(height: 8),
+                        Text('Пока нет учеников, которым можно назначить занятие', 
+                             style: TextStyle(color: Colors.grey, fontSize: 14), textAlign: TextAlign.center),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  for (final student in _allStudents)
+                    ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: _selectedStudent?.objectId == student.objectId ? Colors.blue : Colors.grey.shade300,
+                        child: Icon(Icons.person, color: _selectedStudent?.objectId == student.objectId ? Colors.white : Colors.grey),
+                      ),
+                      title: Text([
+                        student.get('surname') ?? '',
+                        student.get('firstname') ?? '',
+                        student.get('patronymic') ?? ''
+                      ].where((s) => s.isNotEmpty).join(' ') || student.get('email') ?? 'Ученик'),
+                      subtitle: Text(student.get('phone') ?? 'Телефон не указан'),
+                      selected: _selectedStudent?.objectId == student.objectId,
+                      selectedTileColor: Colors.blue.shade50,
+                      onTap: () => setState(() => _selectedStudent = student),
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildDateTimeStep() {
+    // Если дата была передана из календаря, показываем её без возможности изменения
+    final isDateFromCalendar = widget.selectedDate != null && widget.skipDateStep;
+    
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -418,19 +592,50 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
               children: [
                 const Text('Дата и время', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
-                ListTile(
-                  leading: const Icon(Icons.calendar_today, color: Colors.blue),
-                  title: Text('${_startDate.day}.${_startDate.month}.${_startDate.year}'),
-                  subtitle: const Text('Выберите дату'),
-                  onTap: _selectStartDate,
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.access_time, color: Colors.blue),
-                  title: Text('${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}'),
-                  subtitle: const Text('Выберите время начала'),
-                  onTap: _selectStartDate,
-                ),
+                if (!isDateFromCalendar) ...[
+                  ListTile(
+                    leading: const Icon(Icons.calendar_today, color: Colors.blue),
+                    title: Text('${_startDate.day}.${_startDate.month}.${_startDate.year}'),
+                    subtitle: const Text('Выберите дату'),
+                    onTap: _selectStartDate,
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.access_time, color: Colors.blue),
+                    title: Text('${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}'),
+                    subtitle: const Text('Выберите время начала'),
+                    onTap: _selectStartDate,
+                  ),
+                ] else ...[
+                  ListTile(
+                    leading: const Icon(Icons.calendar_today, color: Colors.green),
+                    title: Text('${_startDate.day}.${_startDate.month}.${_startDate.year}'),
+                    subtitle: const Text('Дата выбрана в календаре'),
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.access_time, color: Colors.blue),
+                    title: Text('${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}'),
+                    subtitle: const Text('Выберите время начала'),
+                    onTap: () async {
+                      final TimeOfDay? time = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.fromDateTime(_startDate),
+                      );
+                      if (time != null) {
+                        setState(() {
+                          _startDate = DateTime(
+                            _startDate.year,
+                            _startDate.month,
+                            _startDate.day,
+                            time.hour,
+                            time.minute,
+                          );
+                        });
+                      }
+                    },
+                  ),
+                ],
                 const SizedBox(height: 8),
                 const Text('Длительность', style: TextStyle(fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
@@ -562,6 +767,12 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   }
 
   Widget _buildCommentStep() {
+    final student = _selectedStudent ?? widget.student;
+    final studentName = student != null 
+        ? [student.get('surname') ?? '', student.get('firstname') ?? '', student.get('patronymic') ?? '']
+            .where((s) => s.isNotEmpty).join(' ')
+        : 'Не выбран';
+    
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -597,6 +808,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
               children: [
                 const Text('Краткая информация', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
+                Text('Ученик: $studentName'),
                 Text('Тип: ${_lessonType == 'driving' ? 'Вождение' : 'Экзамен'}'),
                 Text('Дата: ${_startDate.day}.${_startDate.month}.${_startDate.year}'),
                 Text('Время: ${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')} – ${_endDate.hour}:${_endDate.minute.toString().padLeft(2, '0')}'),

@@ -182,6 +182,49 @@ class LessonService {
     }
   }
 
+  /// Получает всех студентов, у которых есть занятия с этим инструктором
+  Future<List<ParseUser>> getStudentsForInstructor(ParseUser instructor) async {
+    try {
+      // Сначала получаем все занятия инструктора
+      final lessonsQuery = QueryBuilder<ParseObject>(ParseObject('Lesson'))
+        ..whereEqualTo('instructor', instructor.toPointer())
+        ..includeObject(['student']);
+
+      final lessonsResponse = await lessonsQuery.query();
+      if (!lessonsResponse.success || lessonsResponse.results == null) {
+        return [];
+      }
+
+      // Собираем уникальных студентов
+      final studentIds = <String>{};
+      final students = <ParseUser>[];
+
+      for (final lesson in lessonsResponse.results!) {
+        final studentData = lesson.get<ParseObject>('student');
+        if (studentData != null && studentData.objectId != null) {
+          if (!studentIds.contains(studentData.objectId)) {
+            studentIds.add(studentData.objectId!);
+            // Создаём ParseUser из данных
+            final student = ParseUser()
+              ..objectId = studentData.objectId
+              ..set('surname', studentData.get('surname') ?? '')
+              ..set('firstname', studentData.get('firstname') ?? '')
+              ..set('patronymic', studentData.get('patronymic') ?? '')
+              ..set('phone', studentData.get('phone') ?? '')
+              ..set('email', studentData.get('email') ?? '')
+              ..set('photo', studentData.get('photo') ?? '');
+            students.add(student);
+          }
+        }
+      }
+
+      return students;
+    } catch (e) {
+      print('❌ Ошибка получения студентов инструктора: $e');
+      return [];
+    }
+  }
+
   Future<void> cancelLesson(ParseObject lesson) async {
     lesson.set('status', 'cancelled');
     final response = await lesson.save();
