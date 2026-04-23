@@ -540,4 +540,11 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
       ],
     );
   }
+
+  String _getStudentName(ParseUser student) {
+    final parts = [student.get('surname') ?? '', student.get('firstname') ?? '', student.get('patronymic') ?? '']
+        .where((s) => s.isNotEmpty)
+        .toList();
+    return parts.isEmpty ? (student.get('email') ?? 'Ученик') : parts.join(' ');
+  }
 }
