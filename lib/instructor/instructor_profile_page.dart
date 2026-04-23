@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:autoschool_btgp/services/auth_service.dart';
 import 'package:autoschool_btgp/services/edit_profile_page.dart';
 import 'package:autoschool_btgp/archive_page.dart'; // импорт страницы архива
+import 'car_fleet_page.dart'; // импорт страницы автопарка
 
 class InstructorProfilePage extends StatelessWidget {
   void _showQrCodeDialog(BuildContext context, String data) {
@@ -149,6 +150,23 @@ class InstructorProfilePage extends StatelessWidget {
                     ],
                   ),
                 const SizedBox(height: 30),
+                // Кнопка "Автопарк"
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CarFleetPage()),
+                    );
+                  },
+                  icon: const Icon(Icons.directions_car),
+                  label: const Text('Автопарк'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.blue,
+                    minimumSize: const Size(double.infinity, 45),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 // Кнопка "Архив занятий"
                 ElevatedButton.icon(
                   onPressed: () {

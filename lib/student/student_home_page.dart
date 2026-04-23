@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'student_my_lessons_page.dart';
 import 'student_chats_page.dart';
 import 'student_profile_page.dart';
+import '../instructor/calendar_schedule_page.dart';
 
 class StudentHomePage extends StatefulWidget {
   @override
@@ -27,7 +28,10 @@ class _StudentHomePageState extends State<StudentHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Мои занятия'),
@@ -38,6 +42,18 @@ class _StudentHomePageState extends State<StudentHomePage> {
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => CalendarSchedulePage(isInstructor: false)),
+          );
+        },
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.blue,
+        icon: const Icon(Icons.calendar_today),
+        label: const Text('Календарь'),
       ),
     );
   }

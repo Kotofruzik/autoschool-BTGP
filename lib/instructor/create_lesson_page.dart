@@ -4,8 +4,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:autoschool_btgp/services/auth_service.dart';
 import '../services/lesson_service.dart';
+import '../services/car_service.dart';
+import '../models/car_model.dart';
 
 class CreateLessonPage extends StatefulWidget {
   final ParseUser student;
@@ -19,6 +22,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   final PageController _pageController = PageController();
   int _currentStep = 0;
   final LessonService _lessonService = LessonService();
+  final CarService _carService = CarService();
 
   // Шаг 0: Тип занятия
   String _lessonType = 'driving';
@@ -28,7 +32,13 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   int _durationMinutes = 60;
   DateTime get _endDate => _startDate.add(Duration(minutes: _durationMinutes));
 
-  // Шаг 2: Автомобиль (опционально)
+  // Шаг 2: Выбор автомобиля из автопарка (или ручной ввод)
+  List<Car> _instructorCars = [];
+  Car? _selectedCar;
+  bool _isLoadingCars = false;
+  bool _useManualEntry = false;
+  
+  // Ручной ввод (если выбрано)
   final TextEditingController _carBrandController = TextEditingController();
   final TextEditingController _carModelController = TextEditingController();
   final TextEditingController _carNumberController = TextEditingController();
@@ -40,6 +50,32 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
 
   final ImagePicker _picker = ImagePicker();
   bool _isCreating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInstructorCars();
+  }
+
+  Future<void> _loadInstructorCars() async {
+    setState(() => _isLoadingCars = true);
+    final instructor = Provider.of<AuthService>(context, listen: false).currentUser;
+    if (instructor == null) {
+      setState(() => _isLoadingCars = false);
+      return;
+    }
+
+    try {
+      final cars = await _carService.getCarsForInstructor(instructor);
+      setState(() {
+        _instructorCars = cars.where((c) => c.isActive).toList();
+        _isLoadingCars = false;
+      });
+    } catch (e) {
+      print('Ошибка загрузки автомобилей: $e');
+      setState(() => _isLoadingCars = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -126,17 +162,40 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
 
     setState(() => _isCreating = true);
     final instructor = Provider.of<AuthService>(context, listen: false).currentUser;
-    if (instructor == null) return;
+    if (instructor == null) {
+      setState(() => _isCreating = false);
+      return;
+    }
+
+    // Определяем данные автомобиля
+    String? carBrand;
+    String? carModel;
+    String? carNumber;
+    String? carPhotoUrlLocal;
+
+    if (_selectedCar != null && !_useManualEntry) {
+      // Используем выбранный автомобиль из автопарка
+      carBrand = _selectedCar!.brand;
+      carModel = _selectedCar!.model;
+      carNumber = _selectedCar!.number;
+      carPhotoUrlLocal = _selectedCar!.photoUrl;
+    } else {
+      // Используем ручной ввод
+      carBrand = _carBrandController.text.isNotEmpty ? _carBrandController.text : null;
+      carModel = _carModelController.text.isNotEmpty ? _carModelController.text : null;
+      carNumber = _carNumberController.text.isNotEmpty ? _carNumberController.text : null;
+      carPhotoUrlLocal = _carPhotoUrl;
+    }
 
     try {
       await _lessonService.createLesson(
         type: _lessonType,
         startTime: _startDate,
         endTime: _endDate,
-        carBrand: _carBrandController.text.isNotEmpty ? _carBrandController.text : null,
-        carModel: _carModelController.text.isNotEmpty ? _carModelController.text : null,
-        carNumber: _carNumberController.text.isNotEmpty ? _carNumberController.text : null,
-        carPhotoUrl: _carPhotoUrl,
+        carBrand: carBrand,
+        carModel: carModel,
+        carNumber: carNumber,
+        carPhotoUrl: carPhotoUrlLocal,
         comment: _commentController.text.isNotEmpty ? _commentController.text : null,
         student: widget.student,
         instructor: instructor,
@@ -449,58 +508,194 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Автомобиль (необязательно)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('Выберите автомобиль', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
+                
+                // Показываем список автомобилей только если они есть
+                if (_instructorCars.isNotEmpty) ...[
+                  // Переключатель: выбрать из списка или ручной ввод
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _useManualEntry = false),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: !_useManualEntry ? Colors.blue.shade50 : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: !_useManualEntry ? Colors.blue : Colors.grey.shade300),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Из автопарка',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: !_useManualEntry ? Colors.blue : Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _useManualEntry = true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: _useManualEntry ? Colors.blue.shade50 : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: _useManualEntry ? Colors.blue : Colors.grey.shade300),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Вручную',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: _useManualEntry ? Colors.blue : Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                if (!_useManualEntry && _instructorCars.isNotEmpty) ...[
+                  // Выбор из списка автомобилей
+                  if (_isLoadingCars)
+                    const Center(child: CircularProgressIndicator())
+                  else ...[
+                    ..._instructorCars.map((car) => RadioListTile<Car>(
+                      value: car,
+                      groupValue: _selectedCar,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCar = value;
+                          // Очищаем ручной ввод при выборе из списка
+                          _carBrandController.clear();
+                          _carModelController.clear();
+                          _carNumberController.clear();
+                          _carPhotoUrl = null;
+                        });
+                      },
+                      title: Text('${car.brand} ${car.model}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(car.number),
+                      secondary: car.photoUrl != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: CachedNetworkImage(
+                                imageUrl: car.photoUrl!,
+                                width: 60,
+                                height: 40,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Container(
+                              width: 60,
+                              height: 40,
+                              color: Colors.blue.shade100,
+                              child: const Icon(Icons.directions_car, size: 24, color: Colors.blue),
+                            ),
+                    )),
+                    if (_selectedCar != null) ...[
+                      const Divider(height: 24),
+                      const Text('Или введите данные вручную:', style: TextStyle(fontStyle: FontStyle.italic)),
+                      const SizedBox(height: 12),
+                    ],
+                  ],
+                ],
+
+                // Поля ручного ввода
                 TextField(
                   controller: _carBrandController,
-                  decoration: const InputDecoration(
+                  enabled: _useManualEntry || _instructorCars.isEmpty,
+                  decoration: InputDecoration(
                     labelText: 'Марка',
-                    prefixIcon: Icon(Icons.local_car_wash),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.local_car_wash),
+                    border: const OutlineInputBorder(),
+                    filled: _selectedCar != null && !_useManualEntry,
+                    fillColor: Colors.grey.shade200,
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _carModelController,
-                  decoration: const InputDecoration(
+                  enabled: _useManualEntry || _instructorCars.isEmpty,
+                  decoration: InputDecoration(
                     labelText: 'Модель',
-                    prefixIcon: Icon(Icons.settings),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.settings),
+                    border: const OutlineInputBorder(),
+                    filled: _selectedCar != null && !_useManualEntry,
+                    fillColor: Colors.grey.shade200,
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _carNumberController,
-                  decoration: const InputDecoration(
+                  enabled: _useManualEntry || _instructorCars.isEmpty,
+                  decoration: InputDecoration(
                     labelText: 'Госномер',
-                    prefixIcon: Icon(Icons.confirmation_number),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.confirmation_number),
+                    border: const OutlineInputBorder(),
+                    filled: _selectedCar != null && !_useManualEntry,
+                    fillColor: Colors.grey.shade200,
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (_carPhotoUrl == null)
+                
+                // Загрузка фото только при ручном вводе или если нет авто в парке
+                if ((_useManualEntry || _instructorCars.isEmpty) && _carPhotoUrl == null)
                   ElevatedButton.icon(
                     onPressed: _pickAndUploadImage,
                     icon: const Icon(Icons.camera_alt),
                     label: const Text('Добавить фото'),
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade50, foregroundColor: Colors.blue),
                   )
-                else
-                  Column(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(_carPhotoUrl!, height: 150, fit: BoxFit.cover),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton.icon(
-                        onPressed: _pickAndUploadImage,
-                        icon: const Icon(Icons.change_circle),
-                        label: const Text('Заменить фото'),
-                      ),
-                    ],
+                else if ((_useManualEntry || _instructorCars.isEmpty) && _carPhotoUrl != null) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(_carPhotoUrl!, height: 150, fit: BoxFit.cover),
                   ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: _pickAndUploadImage,
+                    icon: const Icon(Icons.change_circle),
+                    label: const Text('Заменить фото'),
+                  ),
+                ],
                 if (_isUploading) const Center(child: CircularProgressIndicator()),
+                
+                // Подсказка если нет автомобилей
+                if (_instructorCars.isEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline, color: Colors.amber),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Добавьте автомобили в разделе "Автопарк" в профиле инструктора',
+                            style: TextStyle(fontSize: 12, color: Colors.amber.shade700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

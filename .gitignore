@@ -4,13 +4,13 @@
 .dart_tool/
 build/
 
-# Logs
-*.log
-
-# Environment variables
+# Environment
 .env
 .env.local
 *.env.*
+
+# Logs
+*.log
 
 # OS generated files
 .DS_Store
@@ -18,5 +18,43 @@ Thumbs.db
 
 # Temporary files
 *.tmp
-*.temp
+*.swp
+*.swo
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# IDE specific
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Build outputs
+bin/
+build/
+dist/
+target/
+out/
+
+# Python related (if mixed project)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+*.so
+.PyCharmCache/
+.pytest_cache/
+.mypy_cache/
+.nox/
+.tox/
 ```
