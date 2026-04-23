@@ -162,9 +162,25 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
     if (!_validateStep()) return;
 
     setState(() => _isCreating = true);
-    final instructor = Provider.of<AuthService>(context, listen: false).currentUser;
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final instructor = authService.currentUser;
+    
+    // Проверяем наличие инструктора
     if (instructor == null) {
       setState(() => _isCreating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ошибка: инструктор не найден'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    // Проверяем наличие студента (если это назначение конкретному ученику)
+    final student = widget.student;
+    if (student == null) {
+      setState(() => _isCreating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ошибка: ученик не выбран'), backgroundColor: Colors.red),
+      );
       return;
     }
 
@@ -181,6 +197,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
     }
 
     try {
+      // Вызываем сервис, передавая ОБЪЕКТЫ ParseUser, а не Map
       await _lessonService.createLesson(
         type: _lessonType,
         startTime: _startDate,
@@ -188,30 +205,19 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
         carBrand: _selectedCar!.brand,
         carModel: _selectedCar!.model,
         carNumber: _selectedCar!.number,
-        carPhotoUrl: _selectedCar!.photoUrl,
+        carPhotoUrl: _selectedCar!.photoUrl?.trim(),
         comment: _commentController.text.isNotEmpty ? _commentController.text : null,
-        student: widget.student,
-        instructor: instructor,
+        student: student, // Передаем объект ParseUser
+        instructor: instructor, // Передаем объект ParseUser
       );
-
-      // Отправка push-уведомления ученику
-      try {
-        final cloudFunc = ParseCloudFunction('sendPushToStudent');
-        await cloudFunc.execute(parameters: {
-          'studentId': widget.student?.objectId ?? '',
-          'lessonType': _lessonType,
-          'lessonTime': _formatTime(_startDate),
-        });
-        print('✅ Push-уведомление отправлено');
-      } catch (e) {
-        print('❌ Ошибка отправки уведомления: $e');
-      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${_lessonType == 'driving' ? 'Вождение' : 'Экзамен'} назначен'), backgroundColor: Colors.green),
       );
-      Navigator.pop(context);
+      
+      Navigator.pop(context, true); // Возвращаем true, чтобы обновить список на предыдущем экране
     } catch (e) {
+      print('❌ Ошибка создания занятия: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red),
       );
