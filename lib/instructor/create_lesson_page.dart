@@ -11,8 +11,9 @@ class CreateLessonPage extends StatefulWidget {
   final ParseUser? student;
   final DateTime? selectedDate;
   final bool skipDateStep;
+  final bool skipStudentStep;
 
-  const CreateLessonPage({Key? key, this.student, this.selectedDate, this.skipDateStep = false}) : super(key: key);
+  const CreateLessonPage({Key? key, this.student, this.selectedDate, this.skipDateStep = false, this.skipStudentStep = false}) : super(key: key);
 
   @override
   _CreateLessonPageState createState() => _CreateLessonPageState();
@@ -49,28 +50,27 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
       _startDate = DateTime(widget.selectedDate!.year, widget.selectedDate!.month, widget.selectedDate!.day, 12, 0);
     }
     
-    // Инициализация шагов в зависимости от skipDateStep
-    _steps = widget.skipDateStep
-        ? [
-            {'icon': Icons.person, 'label': 'Ученик', 'widget': _buildStudentStep},
-            {'icon': Icons.access_time, 'label': 'Время', 'widget': _buildDateTimeStep},
-            {'icon': Icons.directions_car, 'label': 'Авто', 'widget': _buildCarStep},
-            {'icon': Icons.comment, 'label': 'Коммент', 'widget': _buildCommentStep},
-          ]
-        : [
-            {'icon': Icons.category, 'label': 'Тип', 'widget': _buildTypeStep},
-            {'icon': Icons.person, 'label': 'Ученик', 'widget': _buildStudentStep},
-            {'icon': Icons.access_time, 'label': 'Время', 'widget': _buildDateTimeStep},
-            {'icon': Icons.directions_car, 'label': 'Авто', 'widget': _buildCarStep},
-            {'icon': Icons.comment, 'label': 'Коммент', 'widget': _buildCommentStep},
-          ];
+    // Инициализация шагов в зависимости от skipDateStep и skipStudentStep
+    final showTypeStep = !widget.skipDateStep;
+    final showStudentStep = !widget.skipStudentStep && widget.student == null;
     
-    _currentStep = widget.skipDateStep ? 0 : 0;
+    _steps = [
+      if (showTypeStep) {'icon': Icons.category, 'label': 'Тип', 'widget': _buildTypeStep},
+      if (showStudentStep) {'icon': Icons.person, 'label': 'Ученик', 'widget': _buildStudentStep},
+      {'icon': Icons.access_time, 'label': 'Время', 'widget': _buildDateTimeStep},
+      {'icon': Icons.directions_car, 'label': 'Авто', 'widget': _buildCarStep},
+      {'icon': Icons.comment, 'label': 'Коммент', 'widget': _buildCommentStep},
+    ];
+    
+    _currentStep = 0;
     _loadData();
   }
 
   Future<void> _loadData() async {
-    await Future.wait([_loadInstructorCars(), _loadStudents()]);
+    await _loadInstructorCars();
+    if (!widget.skipStudentStep && widget.student == null) {
+      await _loadStudents();
+    }
   }
 
   Future<void> _loadStudents() async {
@@ -136,14 +136,14 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   }
 
   bool _validateStep() {
-    final isStudentStep = widget.skipDateStep ? _currentStep == 0 : _currentStep == 1;
-    final isCarStep = widget.skipDateStep ? _currentStep == 2 : _currentStep == 3;
+    final studentStepIndex = widget.skipDateStep ? 0 : (widget.skipStudentStep || widget.student != null ? 0 : 1);
+    final carStepIndex = studentStepIndex + 2;
     
-    if (isStudentStep && _selectedStudent == null) {
+    if (_currentStep == studentStepIndex && _selectedStudent == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Выберите ученика'), backgroundColor: Colors.red));
       return false;
     }
-    if (isCarStep) {
+    if (_currentStep == carStepIndex) {
       if (_instructorCars.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Добавьте автомобили в автопарк'), backgroundColor: Colors.amber));
         return false;
@@ -305,13 +305,11 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: _lessonType == 'driving' ? Colors.blue : Colors.grey.shade300),
                           ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.directions_car, size: 40, color: _lessonType == 'driving' ? Colors.blue : Colors.grey),
-                              const SizedBox(height: 8),
-                              Text('Вождение', style: TextStyle(fontWeight: FontWeight.bold, color: _lessonType == 'driving' ? Colors.blue : Colors.grey)),
-                            ],
-                          ),
+                          child: Column(children: [
+                            Icon(Icons.directions_car, size: 40, color: _lessonType == 'driving' ? Colors.blue : Colors.grey),
+                            const SizedBox(height: 8),
+                            Text('Вождение', style: TextStyle(fontWeight: FontWeight.bold, color: _lessonType == 'driving' ? Colors.blue : Colors.grey)),
+                          ]),
                         ),
                       ),
                     ),
@@ -326,13 +324,11 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: _lessonType == 'exam' ? Colors.blue : Colors.grey.shade300),
                           ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.assignment, size: 40, color: _lessonType == 'exam' ? Colors.blue : Colors.grey),
-                              const SizedBox(height: 8),
-                              Text('Экзамен', style: TextStyle(fontWeight: FontWeight.bold, color: _lessonType == 'exam' ? Colors.blue : Colors.grey)),
-                            ],
-                          ),
+                          child: Column(children: [
+                            Icon(Icons.assignment, size: 40, color: _lessonType == 'exam' ? Colors.blue : Colors.grey),
+                            const SizedBox(height: 8),
+                            Text('Экзамен', style: TextStyle(fontWeight: FontWeight.bold, color: _lessonType == 'exam' ? Colors.blue : Colors.grey)),
+                          ]),
                         ),
                       ),
                     ),
@@ -394,13 +390,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                   for (final student in _allStudents)
                     ListTile(
                       leading: CircleAvatar(backgroundColor: _selectedStudent?.objectId == student.objectId ? Colors.blue : Colors.grey.shade300, child: Icon(Icons.person, color: _selectedStudent?.objectId == student.objectId ? Colors.white : Colors.grey)),
-                      title: Text(() {
-                        final parts = [student.get('surname'), student.get('firstname'), student.get('patronymic')]
-                            .where((s) => s != null && (s as String).isNotEmpty)
-                            .cast<String>()
-                            .toList();
-                        return parts.isNotEmpty ? parts.join(' ') : (student.get('email') ?? 'Ученик');
-                      }()),
+                      title: Text(_getStudentName(student)),
                       subtitle: Text(student.get('phone') ?? 'Телефон не указан'),
                       selected: _selectedStudent?.objectId == student.objectId,
                       selectedTileColor: Colors.blue.shade50,
@@ -415,13 +405,12 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   }
 
   Widget _buildSelectedStudentCard(ParseUser student) {
-    final fullName = [student.get('surname') ?? '', student.get('firstname') ?? '', student.get('patronymic') ?? ''].where((s) => s.isNotEmpty).join(' ');
     return ListView(padding: const EdgeInsets.all(16), children: [
       Card(color: Colors.green.shade50, child: Padding(padding: const EdgeInsets.all(16), child: Row(children: [
         CircleAvatar(radius: 30, backgroundColor: Colors.blue, child: const Icon(Icons.person, color: Colors.white, size: 30)),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(fullName.isNotEmpty ? fullName : student.get('email') ?? 'Ученик', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(_getStudentName(student), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           Text(student.get('phone') ?? 'Телефон не указан', style: const TextStyle(color: Colors.grey)),
         ])),
         const Icon(Icons.check_circle, color: Colors.green, size: 32),
@@ -445,22 +434,31 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
               children: [
                 const Text('Дата и время', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
-                if (!isDateFromCalendar) ...[
-                  ListTile(leading: const Icon(Icons.calendar_today, color: Colors.blue), title: Text('${_startDate.day}.${_startDate.month}.${_startDate.year}'), subtitle: const Text('Выберите дату'), onTap: _selectStartDate),
-                  const Divider(),
-                  ListTile(leading: const Icon(Icons.access_time, color: Colors.blue), title: Text('${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}'), subtitle: const Text('Выберите время начала'), onTap: _selectStartDate),
-                ] else ...[
-                  ListTile(leading: const Icon(Icons.calendar_today, color: Colors.green), title: Text('${_startDate.day}.${_startDate.month}.${_startDate.year}'), subtitle: const Text('Дата выбрана в календаре')),
-                  const Divider(),
-                  ListTile(leading: const Icon(Icons.access_time, color: Colors.blue), title: Text('${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}'), subtitle: const Text('Выберите время начала'), onTap: () async {
+                ListTile(
+                  leading: Icon(Icons.calendar_today, color: isDateFromCalendar ? Colors.green : Colors.blue),
+                  title: Text('${_startDate.day}.${_startDate.month}.${_startDate.year}'),
+                  subtitle: Text(isDateFromCalendar ? 'Дата выбрана в календаре' : 'Выберите дату'),
+                  onTap: isDateFromCalendar ? null : _selectStartDate,
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.access_time, color: Colors.blue),
+                  title: Text('${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}'),
+                  subtitle: const Text('Выберите время начала'),
+                  onTap: () async {
                     final TimeOfDay? time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_startDate));
                     if (time != null) setState(() => _startDate = DateTime(_startDate.year, _startDate.month, _startDate.day, time.hour, time.minute));
-                  }),
-                ],
-                const SizedBox(height: 8),
+                  },
+                ),
+                const SizedBox(height: 16),
                 const Text('Длительность', style: TextStyle(fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
-                DropdownButtonFormField<int>(value: _durationMinutes, items: [30, 45, 60, 90, 120].map((v) => DropdownMenuItem(value: v, child: Text('$v мин'))).toList(), onChanged: (v) => setState(() => _durationMinutes = v!), decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8))),
+                DropdownButtonFormField<int>(
+                  value: _durationMinutes,
+                  items: [30, 45, 60, 90, 120].map((v) => DropdownMenuItem(value: v, child: Text('$v мин'))).toList(),
+                  onChanged: (v) => setState(() => _durationMinutes = v!),
+                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                ),
                 const SizedBox(height: 12),
                 Text('Окончание: ${_endDate.hour}:${_endDate.minute.toString().padLeft(2, '0')}'),
               ],

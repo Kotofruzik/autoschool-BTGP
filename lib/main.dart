@@ -147,6 +147,7 @@ class MyApp extends StatelessWidget {
               student: args?['student'] as ParseUser?,
               selectedDate: args?['selectedDate'] as DateTime?,
               skipDateStep: args?['skipDateStep'] as bool? ?? false,
+              skipStudentStep: args?['skipStudentStep'] as bool? ?? false,
             );
           },
         },

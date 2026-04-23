@@ -87,7 +87,7 @@ class InstructorStudentPreviewPage extends StatelessWidget {
                         Navigator.pushNamed(
                           context,
                           '/create-lesson',
-                          arguments: {'student': student},
+                          arguments: {'student': student, 'skipStudentStep': true},
                         );
                       },
                       icon: const Icon(Icons.add),
