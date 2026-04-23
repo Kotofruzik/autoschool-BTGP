@@ -185,18 +185,20 @@ class LessonService {
   /// Получает всех студентов, которые закреплены за этим инструктором
   Future<List<ParseUser>> getStudentsForInstructor(ParseUser instructor) async {
     try {
-      // Используем специальное поле instructorId из профиля инструктора
-      final instructorId = instructor.get('instructorId') as String?;
+      // Студенты привязаны по полю instructorId к objectId инструктора
+      // В логах видно: where={"role": "student","instructorId": "HbYowISpyB"}
+      // где HbYowISpyB - это objectId инструктора, а не его instructorId
+      final instructorObjectId = instructor.objectId;
       
-      if (instructorId == null || instructorId.isEmpty) {
-        print('⚠️ У инструктора не указан instructorId');
+      if (instructorObjectId == null || instructorObjectId.isEmpty) {
+        print('⚠️ У инструктора не указан objectId');
         return [];
       }
 
-      // Ищем всех пользователей с ролью student и instructorId = instructorId инструктора
+      // Ищем всех пользователей с ролью student и instructorId = objectId инструктора
       final studentQuery = QueryBuilder<ParseObject>(ParseObject('_User'))
         ..whereEqualTo('role', 'student')
-        ..whereEqualTo('instructorId', instructorId);
+        ..whereEqualTo('instructorId', instructorObjectId);
 
       final studentResponse = await studentQuery.query();
       if (!studentResponse.success || studentResponse.results == null) {
