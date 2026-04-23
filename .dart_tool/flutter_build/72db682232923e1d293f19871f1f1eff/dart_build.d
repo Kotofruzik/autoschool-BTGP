@@ -1,0 +1,1 @@
+ /Users/kotofruzik/AndroidStudioProjects/autoschool_btgp/.dart_tool/flutter_build/72db682232923e1d293f19871f1f1eff/dart_build_result.json:  /Users/kotofruzik/AndroidStudioProjects/autoschool_btgp/.dart_tool/package_config.json /Users/kotofruzik/AndroidStudioProjects/autoschool_btgp/pubspec.yaml /Users/kotofruzik/Developer/flutter/bin/cache/dart-sdk/version

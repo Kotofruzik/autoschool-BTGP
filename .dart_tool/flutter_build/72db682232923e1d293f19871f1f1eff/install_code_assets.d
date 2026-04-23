@@ -1,0 +1,1 @@
+ /Users/kotofruzik/AndroidStudioProjects/autoschool_btgp/.dart_tool/flutter_build/72db682232923e1d293f19871f1f1eff/native_assets.json: 
