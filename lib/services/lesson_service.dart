@@ -185,25 +185,30 @@ class LessonService {
   /// Получает всех студентов, которые закреплены за этим инструктором
   Future<List<ParseUser>> getStudentsForInstructor(ParseUser instructor) async {
     try {
-      // Студенты привязаны по полю instructorId к objectId инструктора
-      // В логах видно: where={"role": "student","instructorId": "HbYowISpyB"}
-      // где HbYowISpyB - это objectId инструктора, а не его instructorId
-      final instructorObjectId = instructor.objectId;
+      // Студенты привязаны по полю instructorId 
+      // В логах видно что у инструктора есть поле instructorId со значением "hxjyicgO0y"
+      // и у студента в поле instructorId тоже должно быть это значение
+      final instructorId = instructor.get<String>('instructorId');
       
-      if (instructorObjectId == null || instructorObjectId.isEmpty) {
-        print('⚠️ У инструктора не указан objectId');
+      if (instructorId == null || instructorId.isEmpty) {
+        print('⚠️ У инструктора не указан instructorId');
         return [];
       }
 
-      // Ищем всех пользователей с ролью student и instructorId = objectId инструктора
+      print('🔍 Ищем студентов с instructorId: $instructorId');
+
+      // Ищем всех пользователей с ролью student и instructorId = instructorId инструктора
       final studentQuery = QueryBuilder<ParseObject>(ParseObject('_User'))
         ..whereEqualTo('role', 'student')
-        ..whereEqualTo('instructorId', instructorObjectId);
+        ..whereEqualTo('instructorId', instructorId);
 
       final studentResponse = await studentQuery.query();
       if (!studentResponse.success || studentResponse.results == null) {
+        print('⚠️ Запрос студентов вернул ошибку или пустой результат');
         return [];
       }
+
+      print('✅ Найдено студентов: ${studentResponse.results!.length}');
 
       final students = <ParseUser>[];
       for (final studentData in studentResponse.results!) {
