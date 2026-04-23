@@ -1,17 +1,14 @@
-# Compiled and build artifacts
-*.pyc
-__pycache__/
+```
+# Build artifacts
 *.o
 *.obj
-*.class
-*.exe
-*.dll
-*.so
 *.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.exe
 *.out
-dist/
-build/
-target/
 
 # Dependencies
 node_modules/
@@ -19,61 +16,24 @@ venv/
 .venv/
 .env
 .env.local
-.env.*
+*.env.*
 
 # Logs and temp files
 *.log
 *.tmp
 *.swp
 *.swo
-*.bak
-*.~
-Thumbs.db
-.DS_Store
 
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Coverage
+# Coverage reports
 coverage/
 htmlcov/
 .coverage
 
-# Python specific
-*.pyc
-__pycache__/
-.mypy_cache/
-.pytest_cache/
+# Editors
+.vscode/
+.idea/
 
-# Java/Kotlin/Gradle
-.gradle/
-*.class
-*.jar
-
-# Go
-*.exe
-*.dll
-*.so
-
-# Dart/Flutter (since lesson_service.dart suggests Flutter/Dart project)
-.dart_tool/
-.packages
-*.g.dart
-*.freezed.dart
-*.gen.dart
-*.gr.dart
-*.config.dart
-build/
-.flutter-plugins-dependencies
-.flutter-plugins
-ios/.symlinks/
-android/.gradle/
-android/build/
-android/app/build/
-windows/runner/Release/
-windows/runner/Debug/
-macos/Build/
-linux/Build/
+# OS generated files
+.DS_Store
+Thumbs.db
+```
