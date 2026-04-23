@@ -1,28 +1,42 @@
-```
-# Build artifacts
-*.dart_tool/
-*.build/
-build/
-
 # Dependencies
-.pub/
-vendor/
+.dart_tool/
+.build/
 
-# Logs
+# Logs and temp files
 *.log
+*.tmp
+*.swp
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# Editor/IDE
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# OS generated files
+# Coverage
+coverage/
+lcov.info
+
+# Distribution
+dist/
+build/
+
+# Temporary files
+*.tmp
+*~
 .DS_Store
 Thumbs.db
-```
+
+# Flutter/Dart specific
+.pub-cache/
+.packages
+**/generated_*
+.dart_tool/
+.fvm/
+
+# Debug files
+debug/
+profile/

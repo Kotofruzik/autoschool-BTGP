@@ -204,7 +204,8 @@ class _CalendarSchedulePageState extends State<CalendarSchedulePage> {
     }
 
     final dayLessons = _getLessonsForDay(_selectedDay!);
-    final dateStr = DateFormat('dd MMMM yyyy', 'ru_RU').format(_selectedDay!);
+    // Используем простой формат без зависимости от локали
+    final dateStr = DateFormat('dd MMMM yyyy').format(_selectedDay!);
 
     if (dayLessons.isEmpty) {
       return Center(
