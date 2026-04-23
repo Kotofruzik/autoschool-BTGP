@@ -422,9 +422,12 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
 
   Widget _buildDateTimeStep() {
     final isDateFromCalendar = widget.selectedDate != null && widget.skipDateStep;
+    final isFromStudentProfile = widget.student != null || widget.skipStudentStep;
+    
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // Карточка даты
         Card(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
@@ -432,35 +435,177 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Дата и время', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: Icon(Icons.calendar_today, color: isDateFromCalendar ? Colors.green : Colors.blue),
-                  title: Text('${_startDate.day}.${_startDate.month}.${_startDate.year}'),
-                  subtitle: Text(isDateFromCalendar ? 'Дата выбрана в календаре' : 'Выберите дату'),
-                  onTap: isDateFromCalendar ? null : _selectStartDate,
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, color: isDateFromCalendar ? Colors.green : Colors.blue, size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Дата',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.access_time, color: Colors.blue),
-                  title: Text('${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}'),
-                  subtitle: const Text('Выберите время начала'),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDateFromCalendar ? Colors.green.shade50 : Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isDateFromCalendar ? Colors.green : Colors.blue, width: 2),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.event, color: isDateFromCalendar ? Colors.green : Colors.blue, size: 32),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${_startDate.day}.${_startDate.month}.${_startDate.year}',
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              isDateFromCalendar ? 'Выбрана в календаре' : 'Нажмите для изменения',
+                              style: TextStyle(fontSize: 14, color: isDateFromCalendar ? Colors.green.shade700 : Colors.blue.shade700),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (!isDateFromCalendar)
+                        Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400),
+                    ],
+                  ),
+                ),
+                if (!isDateFromCalendar) ...[
+                  const SizedBox(height: 12),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: _selectStartDate,
+                      icon: const Icon(Icons.edit_calendar),
+                      label: const Text('Изменить дату'),
+                      style: TextButton.styleFrom(foregroundColor: Colors.blue),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Карточка времени
+        Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.access_time, color: Colors.orange, size: 28),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Время',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                InkWell(
                   onTap: () async {
-                    final TimeOfDay? time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_startDate));
-                    if (time != null) setState(() => _startDate = DateTime(_startDate.year, _startDate.month, _startDate.day, time.hour, time.minute));
+                    final TimeOfDay? time = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(_startDate),
+                      builder: (context, child) => Theme(
+                        data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: Colors.orange)),
+                        child: child!,
+                      ),
+                    );
+                    if (time != null) {
+                      setState(() => _startDate = DateTime(_startDate.year, _startDate.month, _startDate.day, time.hour, time.minute));
+                    }
                   },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange, width: 2),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.schedule, color: Colors.orange, size: 32),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${_startDate.hour}:${_startDate.minute.toString().padLeft(2, '0')}',
+                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              ),
+                              const Text(
+                                'Нажмите для выбора времени',
+                                style: TextStyle(fontSize: 14, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Длительность', style: TextStyle(fontWeight: FontWeight.w500)),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<int>(
-                  value: _durationMinutes,
-                  items: [30, 45, 60, 90, 120].map((v) => DropdownMenuItem(value: v, child: Text('$v мин'))).toList(),
-                  onChanged: (v) => setState(() => _durationMinutes = v!),
-                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                ),
+                const Text('Длительность занятия', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
                 const SizedBox(height: 12),
-                Text('Окончание: ${_endDate.hour}:${_endDate.minute.toString().padLeft(2, '0')}'),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: ButtonTheme(
+                      alignedDropdown: true,
+                      child: DropdownButtonFormField<int>(
+                        value: _durationMinutes,
+                        items: [30, 45, 60, 90, 120].map((v) => DropdownMenuItem(value: v, child: Text('$v мин', style: const TextStyle(fontSize: 16)))).toList(),
+                        onChanged: (v) => setState(() => _durationMinutes = v!),
+                        decoration: const InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          prefixIcon: Icon(Icons.timer, color: Colors.orange),
+                        ),
+                        dropdownColor: Colors.white,
+                        icon: const Icon(Icons.arrow_drop_down, color: Colors.orange),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Окончание:', style: TextStyle(fontWeight: FontWeight.w500)),
+                      Text(
+                        '${_endDate.hour}:${_endDate.minute.toString().padLeft(2, '0')}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

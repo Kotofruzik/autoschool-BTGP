@@ -182,40 +182,30 @@ class LessonService {
     }
   }
 
-  /// Получает всех студентов, у которых есть занятия с этим инструктором
+  /// Получает всех студентов, которые закреплены за этим инструктором
   Future<List<ParseUser>> getStudentsForInstructor(ParseUser instructor) async {
     try {
-      // Сначала получаем все занятия инструктора
-      final lessonsQuery = QueryBuilder<ParseObject>(ParseObject('Lesson'))
-        ..whereEqualTo('instructor', instructor.toPointer())
-        ..includeObject(['student']);
+      // Ищем всех пользователей с ролью student и instructorId = objectId инструктора
+      final studentQuery = QueryBuilder<ParseObject>(ParseObject('_User'))
+        ..whereEqualTo('role', 'student')
+        ..whereEqualTo('instructorId', instructor.objectId ?? '');
 
-      final lessonsResponse = await lessonsQuery.query();
-      if (!lessonsResponse.success || lessonsResponse.results == null) {
+      final studentResponse = await studentQuery.query();
+      if (!studentResponse.success || studentResponse.results == null) {
         return [];
       }
 
-      // Собираем уникальных студентов
-      final studentIds = <String>{};
       final students = <ParseUser>[];
-
-      for (final lesson in lessonsResponse.results!) {
-        final studentData = lesson.get<ParseObject>('student');
-        if (studentData != null && studentData.objectId != null) {
-          if (!studentIds.contains(studentData.objectId)) {
-            studentIds.add(studentData.objectId!);
-            // Создаём ParseUser из данных
-            final student = ParseUser.forQuery()
-              ..objectId = studentData.objectId
-              ..set('surname', studentData.get('surname') ?? '')
-              ..set('firstname', studentData.get('firstname') ?? '')
-              ..set('patronymic', studentData.get('patronymic') ?? '')
-              ..set('phone', studentData.get('phone') ?? '')
-              ..set('email', studentData.get('email') ?? '')
-              ..set('photo', studentData.get('photo') ?? '');
-            students.add(student);
-          }
-        }
+      for (final studentData in studentResponse.results!) {
+        final student = ParseUser.forQuery()
+          ..objectId = studentData.objectId
+          ..set('surname', studentData.get('surname') ?? '')
+          ..set('firstname', studentData.get('firstname') ?? '')
+          ..set('patronymic', studentData.get('patronymic') ?? '')
+          ..set('phone', studentData.get('phone') ?? '')
+          ..set('email', studentData.get('email') ?? '')
+          ..set('photo', studentData.get('photo') ?? '');
+        students.add(student);
       }
 
       return students;
