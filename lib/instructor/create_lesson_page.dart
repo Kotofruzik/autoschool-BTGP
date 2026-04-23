@@ -10,8 +10,9 @@ import '../models/car_model.dart';
 class CreateLessonPage extends StatefulWidget {
   final ParseUser? student;
   final DateTime? selectedDate;
+  final bool skipDateStep; // Флаг для пропуска шага выбора даты
 
-  const CreateLessonPage({Key? key, this.student, this.selectedDate}) : super(key: key);
+  const CreateLessonPage({Key? key, this.student, this.selectedDate, this.skipDateStep = false}) : super(key: key);
 
   @override
   _CreateLessonPageState createState() => _CreateLessonPageState();
@@ -44,7 +45,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    // Если передана дата из календаря, используем её
+    // Если передана дата из календаря, используем её и пропускаем шаг выбора даты
     if (widget.selectedDate != null) {
       _startDate = DateTime(
         widget.selectedDate!.year,
@@ -53,6 +54,13 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
         12, // полдень по умолчанию
         0,
       );
+      // Если установлен флаг skipDateStep, начинаем сразу с шага выбора автомобиля
+      if (widget.skipDateStep) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _pageController.jumpToPage(2);
+          setState(() => _currentStep = 2);
+        });
+      }
     }
     _loadInstructorCars();
   }

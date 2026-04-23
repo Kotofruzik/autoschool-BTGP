@@ -1,41 +1,47 @@
 ```
-# Build outputs
+# Build artifacts
+*.class
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
 build/
 dist/
 
 # Dependencies
-.pub/
-.dart_tool/
-.packages
+node_modules/
+venv/
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+target/
+.gradle/
 
-# Logs
-*.log
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
 
-# Environment
+# System files
+.DS_Store
+Thumbs.db
 .env
 .env.local
 *.env.*
 
-# IDE
-.vscode/
-.idea/
-*.iml
-*.ipr
-*.iws
-
-# OS
-.DS_Store
-Thumbs.db
+# Logs
+*.log
 
 # Coverage
 coverage/
 htmlcov/
 .coverage
-
-# Temporary files
-*.tmp
-*.swp
-*.swo
 
 # Compressed files
 *.zip

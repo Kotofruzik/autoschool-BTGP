@@ -141,7 +141,14 @@ class MyApp extends StatelessWidget {
           '/login': (context) => LoginPage(),
           '/register': (context) => RegisterPage(),
           '/photo-upload': (context) => PhotoUploadPage(),
-          '/create-lesson': (context) => CreateLessonPage(),
+          '/create-lesson': (context) {
+            final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+            return CreateLessonPage(
+              student: args?['student'] as ParseUser?,
+              selectedDate: args?['selectedDate'] as DateTime?,
+              skipDateStep: args?['skipDateStep'] as bool? ?? false,
+            );
+          },
         },
       ),
     );

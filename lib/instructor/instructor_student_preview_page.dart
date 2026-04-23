@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'create_lesson_page.dart';
 
 class InstructorStudentPreviewPage extends StatelessWidget {
   final ParseUser student;
@@ -85,11 +84,10 @@ class InstructorStudentPreviewPage extends StatelessWidget {
                     ),
                     ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.push(
+                        Navigator.pushNamed(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => CreateLessonPage(student: student),
-                          ),
+                          '/create-lesson',
+                          arguments: {'student': student},
                         );
                       },
                       icon: const Icon(Icons.add),

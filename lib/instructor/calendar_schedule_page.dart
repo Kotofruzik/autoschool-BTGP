@@ -189,7 +189,7 @@ class _CalendarSchedulePageState extends State<CalendarSchedulePage> {
                   Navigator.pushNamed(
                     context,
                     '/create-lesson',
-                    arguments: {'selectedDate': _selectedDay},
+                    arguments: {'selectedDate': _selectedDay, 'skipDateStep': true},
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
