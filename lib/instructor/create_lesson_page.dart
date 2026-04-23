@@ -34,20 +34,12 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   int _durationMinutes = 60;
   DateTime get _endDate => _startDate.add(Duration(minutes: _durationMinutes));
 
-  // Шаг 2: Выбор автомобиля из автопарка (или ручной ввод)
+  // Шаг 2: Выбор автомобиля из автопарка
   List<Car> _instructorCars = [];
   Car? _selectedCar;
   bool _isLoadingCars = false;
-  bool _useManualEntry = false;
   
-  // Ручной ввод (если выбрано)
-  final TextEditingController _carBrandController = TextEditingController();
-  final TextEditingController _carModelController = TextEditingController();
-  final TextEditingController _carNumberController = TextEditingController();
-  String? _carPhotoUrl;
-  bool _isUploading = false;
-
-  // Шаг 3: Комментарий
+  // Комментарий
   final TextEditingController _commentController = TextEditingController();
 
   final ImagePicker _picker = ImagePicker();
@@ -92,9 +84,6 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   @override
   void dispose() {
     _pageController.dispose();
-    _carBrandController.dispose();
-    _carModelController.dispose();
-    _carNumberController.dispose();
     _commentController.dispose();
     super.dispose();
   }
@@ -179,24 +168,16 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
       return;
     }
 
-    // Определяем данные автомобиля
-    String? carBrand;
-    String? carModel;
-    String? carNumber;
-    String? carPhotoUrlLocal;
-
-    if (_selectedCar != null && !_useManualEntry) {
-      // Используем выбранный автомобиль из автопарка
-      carBrand = _selectedCar!.brand;
-      carModel = _selectedCar!.model;
-      carNumber = _selectedCar!.number;
-      carPhotoUrlLocal = _selectedCar!.photoUrl;
-    } else {
-      // Используем ручной ввод
-      carBrand = _carBrandController.text.isNotEmpty ? _carBrandController.text : null;
-      carModel = _carModelController.text.isNotEmpty ? _carModelController.text : null;
-      carNumber = _carNumberController.text.isNotEmpty ? _carNumberController.text : null;
-      carPhotoUrlLocal = _carPhotoUrl;
+    // Проверяем, выбран ли автомобиль
+    if (_selectedCar == null) {
+      setState(() => _isCreating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Выберите автомобиль из автопарка'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
     }
 
     try {
@@ -204,10 +185,10 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
         type: _lessonType,
         startTime: _startDate,
         endTime: _endDate,
-        carBrand: carBrand,
-        carModel: carModel,
-        carNumber: carNumber,
-        carPhotoUrl: carPhotoUrlLocal,
+        carBrand: _selectedCar!.brand,
+        carModel: _selectedCar!.model,
+        carNumber: _selectedCar!.number,
+        carPhotoUrl: _selectedCar!.photoUrl,
         comment: _commentController.text.isNotEmpty ? _commentController.text : null,
         student: widget.student,
         instructor: instructor,
@@ -217,7 +198,7 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
       try {
         final cloudFunc = ParseCloudFunction('sendPushToStudent');
         await cloudFunc.execute(parameters: {
-          'studentId': widget.student.objectId,
+          'studentId': widget.student?.objectId ?? '',
           'lessonType': _lessonType,
           'lessonTime': _formatTime(_startDate),
         });
@@ -248,9 +229,20 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
       case 1:
         return true;
       case 2:
-        if (_carNumberController.text.isNotEmpty && _carNumberController.text.length < 5) {
+        // Проверяем, есть ли автомобили в автопарке и выбран ли автомобиль
+        if (_instructorCars.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Госномер должен быть не менее 5 символов'), backgroundColor: Colors.red),
+            const SnackBar(
+              content: Text('Сначала добавьте автомобили в автопарк в профиле инструктора'),
+              backgroundColor: Colors.amber,
+              duration: Duration(seconds: 4),
+            ),
+          );
+          return false;
+        }
+        if (_selectedCar == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Выберите автомобиль из списка'), backgroundColor: Colors.red),
           );
           return false;
         }
