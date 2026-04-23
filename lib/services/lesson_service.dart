@@ -185,47 +185,30 @@ class LessonService {
   /// Получает всех студентов, которые закреплены за этим инструктором
   Future<List<ParseUser>> getStudentsForInstructor(ParseUser instructor) async {
     try {
-      // Студенты привязаны по полю instructorId 
-      // В логах видно что у инструктора есть поле instructorId со значением "hxjyicgO0y"
-      // и у студента в поле instructorId тоже должно быть это значение
-      final instructorId = instructor.get<String>('instructorId');
+      // Используем проверенную облачную функцию getMyStudents
+      final response = await ParseCloud.callFunction('getMyStudents', {});
+
+      if (response.success && response.result != null) {
+        final List<dynamic> studentsData = response.result;
+        print('✅ Облачная функция вернула студентов: ${studentsData.length}');
+        
+        return studentsData.map((data) {
+          final student = ParseUser.forQuery()
+            ..objectId = data['id']
+            ..set('surname', data['surname'] ?? '')
+            ..set('firstname', data['firstname'] ?? '')
+            ..set('patronymic', data['patronymic'] ?? '')
+            ..set('phone', data['phone'] ?? '')
+            ..set('email', data['email'] ?? '')
+            ..set('photo', data['photo'] ?? '');
+          return student;
+        }).toList();
+      }
       
-      if (instructorId == null || instructorId.isEmpty) {
-        print('⚠️ У инструктора не указан instructorId');
-        return [];
-      }
-
-      print('🔍 Ищем студентов с instructorId: $instructorId');
-
-      // Ищем всех пользователей с ролью student и instructorId = instructorId инструктора
-      final studentQuery = QueryBuilder<ParseObject>(ParseObject('_User'))
-        ..whereEqualTo('role', 'student')
-        ..whereEqualTo('instructorId', instructorId);
-
-      final studentResponse = await studentQuery.query();
-      if (!studentResponse.success || studentResponse.results == null) {
-        print('⚠️ Запрос студентов вернул ошибку или пустой результат');
-        return [];
-      }
-
-      print('✅ Найдено студентов: ${studentResponse.results!.length}');
-
-      final students = <ParseUser>[];
-      for (final studentData in studentResponse.results!) {
-        final student = ParseUser.forQuery()
-          ..objectId = studentData.objectId
-          ..set('surname', studentData.get('surname') ?? '')
-          ..set('firstname', studentData.get('firstname') ?? '')
-          ..set('patronymic', studentData.get('patronymic') ?? '')
-          ..set('phone', studentData.get('phone') ?? '')
-          ..set('email', studentData.get('email') ?? '')
-          ..set('photo', studentData.get('photo') ?? '');
-        students.add(student);
-      }
-
-      return students;
+      print('⚠️ Облачная функция не вернула результат');
+      return [];
     } catch (e) {
-      print('❌ Ошибка получения студентов инструктора: $e');
+      print('❌ Ошибка получения студентов через облачную функцию: $e');
       return [];
     }
   }
