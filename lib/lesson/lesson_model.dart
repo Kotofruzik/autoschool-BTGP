@@ -35,6 +35,31 @@ class Lesson {
   factory Lesson.fromParse(ParseObject obj) {
     final utcStart = obj.get<DateTime>('startTime') ?? DateTime.now().toUtc();
     final utcEnd = obj.get<DateTime>('endTime') ?? DateTime.now().add(const Duration(hours: 1)).toUtc();
+    
+    // Получаем студента с правильной обработкой типа
+    ParseUser? student;
+    final studentData = obj.get('student');
+    if (studentData is ParseUser) {
+      student = studentData;
+    } else if (studentData is Map<String, dynamic>) {
+      student = ParseUser(null, null, null);
+      student.objectId = studentData['objectId'] as String?;
+      student.set('username', studentData['username']);
+      student.set('email', studentData['email']);
+    }
+
+    // Получаем инструктора с правильной обработкой типа
+    ParseUser? instructor;
+    final instructorData = obj.get('instructor');
+    if (instructorData is ParseUser) {
+      instructor = instructorData;
+    } else if (instructorData is Map<String, dynamic>) {
+      instructor = ParseUser(null, null, null);
+      instructor.objectId = instructorData['objectId'] as String?;
+      instructor.set('username', instructorData['username']);
+      instructor.set('email', instructorData['email']);
+    }
+
     return Lesson(
       objectId: obj.objectId,
       type: obj.get<String>('type') ?? 'driving',
@@ -46,8 +71,8 @@ class Lesson {
       carNumber: obj.get<String>('carNumber'),
       carPhotoUrl: obj.get<String>('carPhoto'),
       comment: obj.get<String>('comment'),
-      student: obj.get<ParseUser>('student'),
-      instructor: obj.get<ParseUser>('instructor'),
+      student: student,
+      instructor: instructor,
       status: obj.get<String>('status') ?? 'scheduled',
     );
   }

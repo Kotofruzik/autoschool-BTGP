@@ -26,6 +26,20 @@ class Car {
   });
 
   factory Car.fromParse(ParseObject obj) {
+    // Получаем инструктора с правильной обработкой типа
+    ParseUser? instructor;
+    final instructorData = obj.get('instructor');
+    if (instructorData is ParseUser) {
+      instructor = instructorData;
+    } else if (instructorData is Map<String, dynamic>) {
+      // Если данные пришли в виде карты, создаём ParseUser из них
+      instructor = ParseUser(null, null, null);
+      instructor.objectId = instructorData['objectId'] as String?;
+      // Копируем остальные поля если они есть
+      instructor.set('username', instructorData['username']);
+      instructor.set('email', instructorData['email']);
+    }
+
     return Car(
       objectId: obj.objectId,
       brand: obj.get<String>('brand') ?? '',
@@ -34,7 +48,7 @@ class Car {
       color: obj.get<String>('color'),
       transmission: obj.get<String>('transmission'),
       photoUrl: obj.get<String>('photoUrl'),
-      instructor: obj.get<ParseUser>('instructor'),
+      instructor: instructor,
       isActive: obj.get<bool>('isActive') ?? true,
       createdAt: obj.get<DateTime>('createdAt'),
     );

@@ -93,7 +93,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
       // Фильтруем только активные (не отмененные и не завершенные) с этим инструктором
       final lessonsToCancel = allLessons.where((obj) {
-        final lessonInstructor = obj.get<ParseUser>('instructor');
+        ParseUser? lessonInstructor;
+        final instructorData = obj.get('instructor');
+        if (instructorData is ParseUser) {
+          lessonInstructor = instructorData;
+        } else if (instructorData is Map<String, dynamic>) {
+          lessonInstructor = ParseUser(null, null, null);
+          lessonInstructor.objectId = instructorData['objectId'] as String?;
+        }
         final status = obj.get<String>('status');
         return lessonInstructor != null &&
             lessonInstructor.objectId == instructorId &&
