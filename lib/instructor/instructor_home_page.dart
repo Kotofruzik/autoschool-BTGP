@@ -46,6 +46,7 @@ class _InstructorHomePageState extends State<InstructorHomePage> {
         onTap: _onItemTapped,
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'instructor_calendar',
         onPressed: () {
           Navigator.push(
             context,

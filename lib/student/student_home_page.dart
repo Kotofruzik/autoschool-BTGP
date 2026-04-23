@@ -44,6 +44,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
         onTap: _onItemTapped,
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'student_calendar',
         onPressed: () {
           Navigator.push(
             context,
