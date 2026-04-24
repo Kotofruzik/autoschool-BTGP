@@ -31,7 +31,7 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
 
     try {
       final function = ParseCloudFunction('getMyStudents');
-      final response = await function.execute();
+      final response = await function.execute(parameters: {});
 
       if (response.success && response.result != null) {
         final List<dynamic> results = response.result as List<dynamic>;
@@ -63,6 +63,74 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _detachStudent(ParseUser student) async {
+    final studentName = '${student.get('surname') ?? ''} ${student.get('firstname') ?? ''}'.trim();
+    
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Открепить ученика?'),
+        content: Text('Вы уверены, что хотите открепить ученика "$studentName"? Все будущие занятия с ним будут удалены.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Открепить', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // Получаем текущего инструктора
+      final instructor = await ParseUser.currentUser() as ParseUser?;
+      if (instructor == null || instructor.objectId == null) {
+        throw Exception('Инструктор не авторизован');
+      }
+
+      // Отправляем уведомление инструктору об откреплении
+      await LessonService().notifyInstructorAboutDetach(
+        instructorId: instructor.objectId!,
+        studentName: studentName,
+      );
+
+      // Удаляем все будущие занятия с этим учеником
+      final lessonService = LessonService();
+      final lessons = await lessonService.getLessonsForInstructor(instructor);
+      
+      for (final lesson in lessons) {
+        final lessonStudent = lesson.get('student');
+        if (lessonStudent is Map && lessonStudent['objectId'] == student.objectId) {
+          final startTime = lesson.get<DateTime>('startTime');
+          // Удаляем только будущие занятия
+          if (startTime.isAfter(DateTime.now())) {
+            await lessonService.deleteLesson(lesson);
+          }
+        }
+      }
+
+      // Перезагружаем список студентов
+      await _loadStudents();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ученик "$studentName" откреплён')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка при откреплении: $e')),
+        );
+      }
     }
   }
 
@@ -132,6 +200,7 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
                     ),
                   );
                 },
+                onLongPress: () => _detachStudent(student),
               ),
             );
           },
