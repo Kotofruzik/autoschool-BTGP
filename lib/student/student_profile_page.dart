@@ -22,10 +22,33 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     _loadInstructor();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Перезагружаем инструктора при возврате на страницу (например, после открепления)
+    _loadInstructor();
+  }
+
   Future<void> _loadInstructor() async {
     final user = Provider.of<AuthService>(context, listen: false).currentUser;
-    final instructorId = user?.get('instructorId');
-    if (instructorId == null) return;
+    if (user == null) return;
+    
+    // Получаем актуальные данные пользователя с сервера
+    await user.refresh();
+    final instructorId = user.get('instructorId');
+    
+    print('🔍 Проверка instructorId: текущее значение = $instructorId');
+    
+    if (instructorId == null) {
+      print('✅ Ученик не имеет инструктора (instructorId = null)');
+      if (mounted) {
+        setState(() {
+          _instructor = null;
+          _isLoadingInstructor = false;
+        });
+      }
+      return;
+    }
 
     if (!mounted) return;
     setState(() => _isLoadingInstructor = true);
@@ -43,12 +66,24 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           setState(() {
             _instructor = tempUser;
           });
+          print('✅ Инструктор загружен: ${data['firstName']} ${data['lastName']}');
         }
       } else {
         print('❌ Ошибка получения инструктора: ${response.error?.message}');
+        // Если ошибка - возможно инструктор был удален или откреплен
+        if (mounted) {
+          setState(() {
+            _instructor = null;
+          });
+        }
       }
     } catch (e) {
       print('❌ Ошибка загрузки инструктора: $e');
+      if (mounted) {
+        setState(() {
+          _instructor = null;
+        });
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoadingInstructor = false);

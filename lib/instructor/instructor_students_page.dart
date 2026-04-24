@@ -81,21 +81,18 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
         throw Exception(response.error?.message ?? 'Неизвестная ошибка');
       }
 
-      // Дополнительно явно очищаем instructorId у студента на случай, если облачная функция этого не сделала
-      final studentQuery = QueryBuilder<ParseObject>(ParseObject('_User'))
-        ..whereEqualTo('objectId', student['id']);
-      final queryResponse = await studentQuery.query();
+      // Явно очищаем instructorId у студента через прямой запрос к серверу
+      final studentObject = ParseObject('_User')
+        ..objectId = student['id'];
       
-      if (queryResponse.success && queryResponse.results != null && queryResponse.results!.isNotEmpty) {
-        final studentObject = queryResponse.results!.first;
-        studentObject.set('instructorId', null);
-        final saveResponse = await studentObject.save();
-        
-        if (!saveResponse.success) {
-          print('⚠️ Не удалось очистить instructorId: ${saveResponse.error?.message}');
-        } else {
-          print('✅ instructorId успешно очищен у студента ${student['id']}');
-        }
+      studentObject.set('instructorId', null);
+      final saveResponse = await studentObject.save();
+      
+      if (!saveResponse.success) {
+        print('⚠️ Не удалось очистить instructorId: ${saveResponse.error?.message}');
+        throw Exception('Не удалось обновить данные ученика: ${saveResponse.error?.message}');
+      } else {
+        print('✅ instructorId успешно очищен у студента ${student['id']}');
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
