@@ -1,22 +1,17 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../services/auth_service.dart';
-import '../services/lesson_service.dart';
-import 'instructor_student_preview_page.dart';
 
 class InstructorStudentsPage extends StatefulWidget {
+  const InstructorStudentsPage({Key? key}) : super(key: key);
+
   @override
-  _InstructorStudentsPageState createState() => _InstructorStudentsPageState();
+  State<InstructorStudentsPage> createState() => _InstructorStudentsPageState();
 }
 
 class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
-  List<ParseUser> _students = [];
+  List<dynamic> _students = [];
   bool _isLoading = true;
-  String? _error;
 
   @override
   void initState() {
@@ -27,62 +22,56 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
   Future<void> _loadStudents() async {
     setState(() {
       _isLoading = true;
-      _error = null;
     });
 
     try {
-      final function = ParseCloudFunction('getMyStudents');
-      final response = await function.execute(parameters: {});
+      final response = await ParseCloudFunction('getMyStudents').execute();
 
       if (response.success && response.result != null) {
-        final List<dynamic> results = response.result as List<dynamic>;
-        final List<ParseUser> students = results.map((json) {
-          final user = ParseUser(null, null, null);
-          user.objectId = json['id'];
-          user.set('surname', json['surname']);
-          user.set('firstname', json['firstname']);
-          user.set('patronymic', json['patronymic']);
-          user.set('email', json['email']);
-          user.set('phone', json['phone']);
-          user.set('photo', json['photo']);
-          return user;
-        }).toList();
-
         setState(() {
-          _students = students;
+          _students = List<dynamic>.from(response.result);
+          _isLoading = false;
         });
       } else {
         setState(() {
-          _error = response.error?.message ?? 'Ошибка загрузки';
+          _isLoading = false;
         });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка загрузки: ${response.error?.message ?? "Неизвестная ошибка"}')),
+          );
+        }
       }
     } catch (e) {
       setState(() {
-        _error = (e).toString();
-      });
-    } finally {
-      setState(() {
         _isLoading = false;
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e')),
+        );
+      }
     }
   }
 
-  Future<void> _detachStudent(ParseUser student) async {
-    final studentName = '${student.get('surname') ?? ''} ${student.get('firstname') ?? ''}'.trim();
-    
+  Future<void> _detachStudent(String studentId) async {
+    // Показываем диалог подтверждения
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Открепить ученика?'),
-        content: Text('Вы уверены, что хотите открепить ученика "$studentName"? Все будущие занятия с ним будут удалены.'),
+        content: const Text(
+          'Это удалит все будущие занятия с этим учеником и открепит его от вас.',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Отмена'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Открепить', style: TextStyle(color: Colors.red)),
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Открепить'),
           ),
         ],
       ),
@@ -91,39 +80,30 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
     if (confirm != true) return;
 
     try {
-      // Получаем текущего инструктора
-      final instructor = await ParseUser.currentUser() as ParseUser?;
-      if (instructor == null || instructor.objectId == null) {
-        throw Exception('Инструктор не авторизован');
-      }
+      // Вызываем облачную функцию detachStudent
+      // Параметры передаются ВНУТРЬ метода execute()
+      final response = await ParseCloudFunction('detachStudent')
+          .execute({'studentId': studentId});
 
-      // Удаляем все будущие занятия с этим учеником
-      final lessonService = LessonService();
-      final lessons = await lessonService.getLessonsForInstructor(instructor);
-      
-      for (final lesson in lessons) {
-        final lessonStudent = lesson.get('student');
-        if (lessonStudent is Map && lessonStudent['objectId'] == student.objectId) {
-          final startTimeRaw = lesson.get('startTime');
-          // Удаляем только будущие занятия
-          if (startTimeRaw is DateTime && startTimeRaw.isAfter(DateTime.now())) {
-            await lessonService.deleteLesson(lesson);
-          }
+      if (response.success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ученик успешно откреплен')),
+          );
+          // Перезагружаем список
+          _loadStudents();
         }
-      }
-
-      // Перезагружаем список студентов
-      await _loadStudents();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ученик "$studentName" откреплён')),
-        );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка: ${response.error?.message ?? "Не удалось открепить"}')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка при откреплении: $e')),
+          SnackBar(content: Text('Ошибка: $e')),
         );
       }
     }
@@ -131,75 +111,45 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.blue, Colors.lightBlueAccent],
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Мои ученики'),
       ),
-      child: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
-            : _error != null
-            ? Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Ошибка: $_error', style: const TextStyle(color: Colors.white)),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: _loadStudents,
-                child: const Text('Повторить'),
-              ),
-            ],
-          ),
-        )
-            : _students.isEmpty
-            ? const Center(
-          child: Text(
-            'У вас пока нет учеников',
-            style: TextStyle(color: Colors.white, fontSize: 18),
-          ),
-        )
-            : ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: _students.length,
-          itemBuilder: (ctx, index) {
-            final student = _students[index];
-            final name = '${student.get('surname') ?? ''} ${student.get('firstname') ?? ''}'.trim();
-            final photoUrl = student.get('photo') as String?;
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _students.isEmpty
+          ? const Center(child: Text('У вас пока нет учеников'))
+          : ListView.builder(
+        itemCount: _students.length,
+        itemBuilder: (context, index) {
+          final student = _students[index];
+          final fullName = '${student['surname'] ?? ''} ${student['firstname'] ?? ''} ${student['patronymic'] ?? ''}'.trim();
+          final photoUrl = student['photo'];
 
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  backgroundImage: photoUrl != null ? CachedNetworkImageProvider(photoUrl) : null,
-                  child: photoUrl == null
-                      ? Text(
-                    name.isNotEmpty ? name[0] : '?',
-                    style: const TextStyle(color: Colors.white),
-                  )
-                      : null,
-                ),
-                title: Text(name),
-                subtitle: Text(student.get('email') ?? ''),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => InstructorStudentPreviewPage(student: student),
-                    ),
-                  );
-                },
-                onLongPress: () => _detachStudent(student),
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ListTile(
+              onLongPress: () => _detachStudent(student['id']),
+              leading: CircleAvatar(
+                radius: 24,
+                backgroundColor: Colors.grey[300],
+                backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                    ? CachedNetworkImageProvider(photoUrl)
+                    : null,
+                child: photoUrl == null || photoUrl.isEmpty
+                    ? Icon(Icons.person, color: Colors.grey[600])
+                    : null,
               ),
-            );
-          },
-        ),
+              title: Text(
+                fullName,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(student['email'] ?? ''),
+              isThreeLine: true,
+              trailing: const Icon(Icons.more_vert),
+            ),
+          );
+        },
       ),
     );
   }
