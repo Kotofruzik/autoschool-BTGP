@@ -73,17 +73,35 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
 
     setState(() => _isLoading = true);
     try {
+      // Сначала вызываем облачную функцию для удаления занятий
       final function = ParseCloudFunction('detachStudent');
       final response = await function.execute(parameters: {'studentId': student['id']});
 
-      if (response.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ученик "$studentName" откреплён')),
-        );
-        await _loadStudents(); // обновляем список
-      } else {
+      if (!response.success) {
         throw Exception(response.error?.message ?? 'Неизвестная ошибка');
       }
+
+      // Дополнительно явно очищаем instructorId у студента на случай, если облачная функция этого не сделала
+      final studentQuery = QueryBuilder<ParseObject>(ParseObject('_User'))
+        ..whereEqualTo('objectId', student['id']);
+      final queryResponse = await studentQuery.query();
+      
+      if (queryResponse.success && queryResponse.results != null && queryResponse.results!.isNotEmpty) {
+        final studentObject = queryResponse.results!.first;
+        studentObject.set('instructorId', null);
+        final saveResponse = await studentObject.save();
+        
+        if (!saveResponse.success) {
+          print('⚠️ Не удалось очистить instructorId: ${saveResponse.error?.message}');
+        } else {
+          print('✅ instructorId успешно очищен у студента ${student['id']}');
+        }
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ученик "$studentName" откреплён')),
+      );
+      await _loadStudents(); // обновляем список
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
