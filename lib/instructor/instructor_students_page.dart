@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'instructor_student_preview_page.dart';
 
 class InstructorStudentsPage extends StatefulWidget {
@@ -77,6 +79,9 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
       final response = await function.execute(parameters: {'studentId': student['id']});
 
       if (response.success) {
+        // Отправляем push-уведомление ученику
+        await _sendDetachNotificationToStudent(student['id'], studentName);
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ученик "$studentName" откреплён')),
         );
@@ -92,6 +97,46 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _sendDetachNotificationToStudent(String studentId, String studentName) async {
+    try {
+      print('🔔 [PUSH] Отправка уведомления ученику $studentId об откреплении...');
+
+      final url = Uri.parse('https://parseapi.back4app.com/functions/sendStudentDetachNotification');
+
+      final payload = jsonEncode({
+        'studentId': studentId,
+        'studentName': studentName,
+      });
+
+      final user = await ParseUser.currentUser() as ParseUser?;
+      final sessionToken = user?.sessionToken;
+
+      if (sessionToken == null) {
+        print('[PUSH] Пользователь не авторизован, уведомление не отправлено');
+        return;
+      }
+
+      final response = await http.post(
+        url,
+        headers: {
+          'X-Parse-Application-Id': 'qCxbZic6eqme0pvScG5jLoCxDUxztB9FGuiXhEiy',
+          'X-Parse-Client-Key': '50yEotCNReUkwSd7nhVmhYnoZspmLcbizp1GJC3v',
+          'X-Parse-Session-Token': sessionToken,
+          'Content-Type': 'application/json',
+        },
+        body: payload,
+      );
+
+      if (response.statusCode == 200) {
+        print('[PUSH] Уведомление ученику успешно отправлено через HTTP');
+      } else {
+        print('[PUSH] Ошибка сервера: (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      print('[PUSH] Исключение при отправке уведомления ученику: $e');
     }
   }
 
