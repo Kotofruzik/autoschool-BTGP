@@ -186,7 +186,8 @@ class LessonService {
   Future<List<ParseUser>> getStudentsForInstructor(ParseUser instructor) async {
     try {
       // Используем проверенную облачную функцию getMyStudents
-      final response = await ParseCloud.callFunction('getMyStudents', {});
+      final function = ParseCloudFunction('getMyStudents');
+      final response = await function.execute({});
 
       if (response.success && response.result != null) {
         final List<dynamic> studentsData = response.result;
