@@ -137,13 +137,6 @@ class _InstructorLessonsPageState extends State<InstructorLessonsPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/instructor-students');
-        },
-        child: const Icon(Icons.add),
-        tooltip: 'Назначить занятие',
-      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
