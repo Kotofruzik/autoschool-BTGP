@@ -1,63 +1,23 @@
-# Compiled and build artifacts
-*.pyc
-__pycache__/
-*.o
-*.obj
-*.class
-*.exe
-*.dll
-*.so
-*.a
-*.out
+```
+# Build outputs
+/build/
+/bin/
+/obj/
 
-# Dependencies
-node_modules/
-venv/
-.venv/
+# Log files
+*.log
+
+# Environment variables
 .env
 .env.local
-.env.*
+*.env
 
-# Build directories
-dist/
-build/
-target/
-.gradle/
-
-# Python specific
-*.pyc
-__pycache__/
-*.pyo
-*.pyd
-.Python
-*.so
-.Python
-env/
-.venv/
-venv/
-ENV/
-
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-*.swo
-
-# Editors
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# System files
-.DS_Store
-Thumbs.db
-
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-
-# MyPy cache
-.mypy_cache/
-.pytest_cache/
+# Dependencies
+pubspec.lock
+```

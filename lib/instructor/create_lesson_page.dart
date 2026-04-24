@@ -389,7 +389,15 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
                 else
                   for (final student in _allStudents)
                     ListTile(
-                      leading: CircleAvatar(backgroundColor: _selectedStudent?.objectId == student.objectId ? Colors.blue : Colors.grey.shade300, child: Icon(Icons.person, color: _selectedStudent?.objectId == student.objectId ? Colors.white : Colors.grey)),
+                      leading: CircleAvatar(
+                        backgroundColor: _selectedStudent?.objectId == student.objectId ? Colors.blue : Colors.grey.shade300,
+                        backgroundImage: student.get('photo') != null && (student.get('photo') as String).isNotEmpty
+                            ? CachedNetworkImageProvider((student.get('photo') as String).trim())
+                            : null,
+                        child: student.get('photo') == null || (student.get('photo') as String).isEmpty
+                            ? Icon(Icons.person, color: _selectedStudent?.objectId == student.objectId ? Colors.white : Colors.grey)
+                            : null,
+                      ),
                       title: Text(_getStudentName(student)),
                       subtitle: Text(student.get('phone') ?? 'Телефон не указан'),
                       selected: _selectedStudent?.objectId == student.objectId,
@@ -405,9 +413,19 @@ class _CreateLessonPageState extends State<CreateLessonPage> with SingleTickerPr
   }
 
   Widget _buildSelectedStudentCard(ParseUser student) {
+    final photoUrl = student.get('photo') as String?;
     return ListView(padding: const EdgeInsets.all(16), children: [
       Card(color: Colors.green.shade50, child: Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-        CircleAvatar(radius: 30, backgroundColor: Colors.blue, child: const Icon(Icons.person, color: Colors.white, size: 30)),
+        CircleAvatar(
+          radius: 30,
+          backgroundColor: Colors.blue,
+          backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+              ? CachedNetworkImageProvider(photoUrl.trim())
+              : null,
+          child: photoUrl == null || photoUrl.isEmpty
+              ? const Icon(Icons.person, color: Colors.white, size: 30)
+              : null,
+        ),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(_getStudentName(student), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
