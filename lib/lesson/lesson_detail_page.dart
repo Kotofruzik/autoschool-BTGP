@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:parse_server_sdk/parse_server_sdk.dart';
+import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'lesson_model.dart';
 import '../services/lesson_service.dart';
 import 'package:autoschool_btgp/user_profile_page.dart'; // путь к вашей странице профиля (например, InstructorStudentPreviewPage)

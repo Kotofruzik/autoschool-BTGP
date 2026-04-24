@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parse_server_sdk/parse_server_sdk.dart';
+import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class InstructorStudentsPage extends StatefulWidget {
@@ -83,7 +83,7 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
       // Вызываем облачную функцию detachStudent
       // Параметры передаются ВНУТРЬ метода execute()
       final response = await ParseCloudFunction('detachStudent')
-          .execute({'studentId': studentId});
+          .execute(parameters: {'studentId': studentId});
 
       if (response.success) {
         if (mounted) {
