@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class InstructorStudentPreviewPage extends StatelessWidget {
-  final ParseUser student;
-  const InstructorStudentPreviewPage({Key? key, required this.student}) : super(key: key);
+  final Map<String, dynamic> studentData;
+  const InstructorStudentPreviewPage({Key? key, required this.studentData}) : super(key: key);
 
-  String _getFullName(ParseUser user) {
-    String surname = user.get('surname') ?? '';
-    String firstname = user.get('firstname') ?? '';
-    String patronymic = user.get('patronymic') ?? '';
+  String _getFullName() {
+    String surname = studentData['surname'] ?? '';
+    String firstname = studentData['firstname'] ?? '';
+    String patronymic = studentData['patronymic'] ?? '';
     List<String> parts = [surname, firstname, patronymic].where((s) => s.isNotEmpty).toList();
     if (parts.isNotEmpty) return parts.join(' ');
-    return user.get('email')?.split('@')[0] ?? 'Ученик';
+    String email = studentData['email'] ?? '';
+    return email.split('@').first;
   }
 
   @override
   Widget build(BuildContext context) {
-    final photoUrl = student.get('photo') as String?;
-    final phone = student.get('phone') as String? ?? 'Не указан';
-    final email = student.get('email') as String? ?? '';
+    final photoUrl = studentData['photo'] as String?;
+    final phone = studentData['phone'] as String? ?? 'Не указан';
+    final email = studentData['email'] as String? ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -49,7 +49,7 @@ class InstructorStudentPreviewPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  _getFullName(student),
+                  _getFullName(),
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 const SizedBox(height: 8),
@@ -87,7 +87,7 @@ class InstructorStudentPreviewPage extends StatelessWidget {
                         Navigator.pushNamed(
                           context,
                           '/create-lesson',
-                          arguments: {'student': student, 'skipStudentStep': true},
+                          arguments: {'student': studentData, 'skipStudentStep': true},
                         );
                       },
                       icon: const Icon(Icons.add),
