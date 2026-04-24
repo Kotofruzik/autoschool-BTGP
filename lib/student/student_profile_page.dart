@@ -6,6 +6,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:autoschool_btgp/services/auth_service.dart';
 import 'package:autoschool_btgp/services/edit_profile_page.dart';
 import 'package:autoschool_btgp/archive_page.dart';
+import 'dart:async';
 
 class StudentProfilePage extends StatefulWidget {
   @override
@@ -15,11 +16,28 @@ class StudentProfilePage extends StatefulWidget {
 class _StudentProfilePageState extends State<StudentProfilePage> {
   ParseUser? _instructor;
   bool _isLoadingInstructor = false;
+  StreamSubscription? _notificationSubscription;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadInstructor();
+    _setupNotificationListener();
+    // Периодически проверяем актуальность данных (каждые 30 секунд)
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadInstructor());
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _setupNotificationListener() {
+    // Слушаем push-уведомления о том, что инструктор открепил ученика
+    // Это можно расширить через Firebase Messaging
   }
 
   Future<void> _loadInstructor() async {
