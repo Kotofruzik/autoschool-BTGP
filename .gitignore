@@ -23,7 +23,7 @@ node_modules/
 coverage/
 htmlcov/
 .gradle/
-julia-*/
+.julia/
 zig*/
 
 # Logs and temp files

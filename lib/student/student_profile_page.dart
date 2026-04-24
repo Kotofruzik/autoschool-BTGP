@@ -6,8 +6,6 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:autoschool_btgp/services/auth_service.dart';
 import 'package:autoschool_btgp/services/edit_profile_page.dart';
 import 'package:autoschool_btgp/archive_page.dart';
-import 'package:autoschool_btgp/services/lesson_service.dart';
-import 'package:autoschool_btgp/lesson/lesson_model.dart';
 
 class StudentProfilePage extends StatefulWidget {
   @override
@@ -55,122 +53,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       if (mounted) {
         setState(() => _isLoadingInstructor = false);
       }
-    }
-  }
-
-  Future<void> _detachFromInstructor() async {
-    print('🔄 Начинаем открепление от инструктора...');
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Открепление от инструктора'),
-        content: const Text('Вы уверены, что хотите открепиться? Все запланированные занятия будут отменены и перемещены в архив.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Открепить'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    final auth = Provider.of<AuthService>(context, listen: false);
-    final user = auth.currentUser;
-    if (user == null) return;
-
-    final instructorId = user.get('instructorId') as String?;
-
-    if (instructorId != null) {
-      print('🗑️ Отменяем занятия с инструктором $instructorId');
-      final lessonService = LessonService();
-
-      // Получаем все занятия студента
-      final allLessons = await lessonService.getLessonsForStudent(user);
-
-      // Фильтруем только активные (не отмененные и не завершенные) с этим инструктором
-      final lessonsToCancel = allLessons.where((obj) {
-        ParseUser? lessonInstructor;
-        final instructorData = obj.get('instructor');
-        if (instructorData is ParseUser) {
-          lessonInstructor = instructorData;
-        } else if (instructorData is Map<String, dynamic>) {
-          lessonInstructor = ParseUser(null, null, null);
-          lessonInstructor.objectId = instructorData['objectId'] as String?;
-        }
-        final status = obj.get<String>('status');
-        return lessonInstructor != null &&
-            lessonInstructor.objectId == instructorId &&
-            status != 'cancelled' &&
-            status != 'completed';
-      }).toList();
-
-      print('📋 Найдено активных занятий для отмены: ${lessonsToCancel.length}');
-
-      int cancelledCount = 0;
-      for (final lessonObj in lessonsToCancel) {
-        try {
-          lessonObj.set('status', 'cancelled');
-          final response = await lessonObj.save();
-          if (response.success) {
-            cancelledCount++;
-            print('✅ Занятие ${lessonObj.objectId} отменено');
-          }
-        } catch (e) {
-          print('❌ Ошибка отмены занятия: $e');
-        }
-      }
-
-      // 🔔 Отправляем уведомление инструктору
-      final studentName = '${user.get('surname') ?? ''} ${user.get('firstname') ?? ''}'.trim();
-      await lessonService.notifyInstructorAboutDetach(
-        instructorId: instructorId,
-        studentName: studentName.isNotEmpty ? studentName : (user.username ?? 'Ученик'),
-      );
-    }
-
-    // Удаляем привязку инструктора
-    user.set('instructorId', null);
-    final saveResponse = await user.save();
-
-    if (!saveResponse.success) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ошибка при сохранении профиля')),
-        );
-      }
-      return;
-    }
-
-    auth.setCurrentUser(user);
-
-    if (mounted) {
-      setState(() {
-        _instructor = null;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Вы открепились от инструктора. Занятия отменены и добавлены в архив.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      // 🔄 ВАЖНО: Принудительно обновляем список занятий на главном экране,
-      // если текущая страница является частью навигации, которая может триггерить обновление.
-      // Но так как мы в профиле, нам нужно просто вернуться назад с флагом успеха.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        // Возвращаемся назад с результатом true, чтобы главный экран обновился
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context, true);
-        } else {
-          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-        }
-      });
     }
   }
 
@@ -302,16 +184,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                       Text(
                         _getFullName(_instructor),
                         style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _detachFromInstructor,
-                        icon: const Icon(Icons.link_off, size: 18),
-                        label: const Text('Открепиться'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white),
-                        ),
                       ),
                     ],
                   )
