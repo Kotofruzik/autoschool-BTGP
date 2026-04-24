@@ -104,6 +104,20 @@ class LessonService {
     required ParseUser student,
     required ParseUser instructor,
   }) async {
+    // Проверяем наличие objectId у пользователя и инструктора
+    if (student.objectId == null || instructor.objectId == null) {
+      print('⚠️ У студента или инструктора отсутствует objectId');
+      // Пытаемся получить актуальные данные
+      final currentStudent = student.objectId == null ? await ParseUser.currentUser() as ParseUser? : student;
+      final currentInstructor = instructor.objectId == null ? await ParseUser.currentUser() as ParseUser? : instructor;
+      
+      if (currentStudent?.objectId == null || currentInstructor?.objectId == null) {
+        throw Exception('Не удалось получить objectId студента или инструктора');
+      }
+      student = currentStudent!;
+      instructor = currentInstructor!;
+    }
+
     final lesson = ParseObject('Lesson')
       ..set('type', type)
       ..set('startTime', startTime)
@@ -114,8 +128,8 @@ class LessonService {
       ..set('carNumber', carNumber)
       ..set('carPhoto', carPhotoUrl)
       ..set('comment', comment)
-      ..set('student', student.toPointer())
-      ..set('instructor', instructor.toPointer())
+      ..set('student', {'__type': 'Pointer', 'className': '_User', 'objectId': student.objectId})
+      ..set('instructor', {'__type': 'Pointer', 'className': '_User', 'objectId': instructor.objectId})
       ..set('status', 'scheduled')
       ..setACL(_createLessonACL(instructor, student));
 
@@ -146,15 +160,33 @@ class LessonService {
     final acl = ParseACL();
     acl.setPublicReadAccess(allowed: false);
     acl.setPublicWriteAccess(allowed: false);
-    acl.setReadAccess(userId: instructor.objectId!, allowed: true);
-    acl.setWriteAccess(userId: instructor.objectId!, allowed: true);
-    acl.setReadAccess(userId: student.objectId!, allowed: true);
+    if (instructor.objectId != null) {
+      acl.setReadAccess(userId: instructor.objectId!, allowed: true);
+      acl.setWriteAccess(userId: instructor.objectId!, allowed: true);
+    }
+    if (student.objectId != null) {
+      acl.setReadAccess(userId: student.objectId!, allowed: true);
+    }
     return acl;
   }
 
   Future<List<ParseObject>> getLessonsForStudent(ParseUser student) async {
+    // Убедимся, что у студента есть objectId
+    if (student.objectId == null) {
+      print('⚠️ У студента нет objectId, пробуем получить актуального пользователя');
+      final currentUser = await ParseUser.currentUser() as ParseUser?;
+      if (currentUser == null || currentUser.objectId == null) {
+        print('❌ Не удалось получить студента с objectId');
+        return [];
+      }
+      return await _getLessonsForStudentById(currentUser.objectId!);
+    }
+    return await _getLessonsForStudentById(student.objectId!);
+  }
+
+  Future<List<ParseObject>> _getLessonsForStudentById(String studentId) async {
     final query = QueryBuilder<ParseObject>(ParseObject('Lesson'))
-      ..whereEqualTo('student', student.toPointer())
+      ..whereEqualTo('student', {'__type': 'Pointer', 'className': '_User', 'objectId': studentId})
       ..whereNotEqualTo('status', 'cancelled')
       ..orderByAscending('startTime');
 
@@ -168,8 +200,23 @@ class LessonService {
   }
 
   Future<List<ParseObject>> getLessonsForInstructor(ParseUser instructor) async {
+    // Убедимся, что у инструктора есть objectId
+    if (instructor.objectId == null) {
+      print('⚠️ У инструктора нет objectId, пробуем получить актуального пользователя');
+      final currentUser = await ParseUser.currentUser() as ParseUser?;
+      if (currentUser == null || currentUser.objectId == null) {
+        print('❌ Не удалось получить инструктора с objectId');
+        return [];
+      }
+      // Используем актуального пользователя
+      return await _getLessonsForInstructorById(currentUser.objectId!);
+    }
+    return await _getLessonsForInstructorById(instructor.objectId!);
+  }
+
+  Future<List<ParseObject>> _getLessonsForInstructorById(String instructorId) async {
     final query = QueryBuilder<ParseObject>(ParseObject('Lesson'))
-      ..whereEqualTo('instructor', instructor.toPointer())
+      ..whereEqualTo('instructor', {'__type': 'Pointer', 'className': '_User', 'objectId': instructorId})
       ..whereNotEqualTo('status', 'cancelled')
       ..orderByAscending('startTime');
 
