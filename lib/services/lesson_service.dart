@@ -187,7 +187,7 @@ class LessonService {
     try {
       // Используем проверенную облачную функцию getMyStudents
       final function = ParseCloudFunction('getMyStudents');
-      final response = await function.execute({});
+      final response = await function.execute(parameters: {});
 
       if (response.success && response.result != null) {
         final List<dynamic> studentsData = response.result;
