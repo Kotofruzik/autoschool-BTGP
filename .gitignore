@@ -9,15 +9,22 @@ __pycache__/
 *.so
 *.a
 *.out
+dist/
+build/
+target/
 
 # Dependencies
 .venv/
 venv/
 node_modules/
-dist/
-build/
-target/
+.mypy_cache/
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
 .gradle/
+julia-*/
+zig*/
 
 # Logs and temp files
 *.log
@@ -28,7 +35,7 @@ target/
 # Environment
 .env
 .env.local
-.env.*
+*.env.*
 
 # Editors
 .vscode/
@@ -39,23 +46,6 @@ target/
 # System files
 .DS_Store
 Thumbs.db
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# Python specific
-*.pyc
-__pycache__/
-.mypy_cache/
-.pytest_cache/
-
-# Dart/Flutter specific
-.dart_tool/
-.packages
-.pub-cache/
-pubspec.lock
 
 # Compressed files
 *.zip

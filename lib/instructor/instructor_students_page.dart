@@ -97,12 +97,6 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
         throw Exception('Инструктор не авторизован');
       }
 
-      // Отправляем уведомление инструктору об откреплении
-      await LessonService().notifyInstructorAboutDetach(
-        instructorId: instructor.objectId!,
-        studentName: studentName,
-      );
-
       // Удаляем все будущие занятия с этим учеником
       final lessonService = LessonService();
       final lessons = await lessonService.getLessonsForInstructor(instructor);
