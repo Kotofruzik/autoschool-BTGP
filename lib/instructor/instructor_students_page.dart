@@ -110,9 +110,9 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
       for (final lesson in lessons) {
         final lessonStudent = lesson.get('student');
         if (lessonStudent is Map && lessonStudent['objectId'] == student.objectId) {
-          final startTime = lesson.get<DateTime>('startTime');
+          final startTimeRaw = lesson.get('startTime');
           // Удаляем только будущие занятия
-          if (startTime.isAfter(DateTime.now())) {
+          if (startTimeRaw is DateTime && startTimeRaw.isAfter(DateTime.now())) {
             await lessonService.deleteLesson(lesson);
           }
         }
