@@ -83,7 +83,7 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
       // Вызываем облачную функцию detachStudent
       // Параметры передаются ВНУТРЬ метода execute()
       final response = await ParseCloudFunction('detachStudent')
-          .execute({'studentId': studentId});
+          .execute(parameters: {'studentId': studentId});
 
       if (response.success) {
         if (mounted) {
