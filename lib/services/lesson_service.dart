@@ -208,7 +208,6 @@ class LessonService {
         print('❌ Не удалось получить инструктора с objectId');
         return [];
       }
-      // Используем актуального пользователя
       return await _getLessonsForInstructorById(currentUser.objectId!);
     }
     return await _getLessonsForInstructorById(instructor.objectId!);
@@ -229,10 +228,8 @@ class LessonService {
     }
   }
 
-  /// Получает всех студентов, которые закреплены за этим инструктором
   Future<List<ParseUser>> getStudentsForInstructor(ParseUser instructor) async {
     try {
-      // Используем проверенную облачную функцию getMyStudents
       final function = ParseCloudFunction('getMyStudents');
       final response = await function.execute(parameters: {});
 

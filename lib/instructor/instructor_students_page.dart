@@ -73,7 +73,6 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
 
     setState(() => _isLoading = true);
     try {
-      // Сначала вызываем облачную функцию для удаления занятий
       final function = ParseCloudFunction('detachStudent');
       final response = await function.execute(parameters: {'studentId': student['id']});
 
@@ -83,7 +82,6 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
 
       print('✅ Облачная функция detachStudent выполнена успешно');
 
-      // Явно очищаем instructorId у студента через прямой запрос к серверу
       final query = QueryBuilder<ParseObject>(ParseObject('_User'))
         ..whereEqualTo('objectId', student['id']);
       final queryResponse = await query.query();
@@ -106,7 +104,7 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ученик "$studentName" откреплён')),
       );
-      await _loadStudents(); // обновляем список
+      await _loadStudents();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

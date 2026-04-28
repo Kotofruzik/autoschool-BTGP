@@ -28,7 +28,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> with WidgetsBin
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Обновляем данные когда приложение возвращается в активное состояние
     if (state == AppLifecycleState.resumed) {
       print('🔄 Приложение вернулось в активное состояние, обновляем данные инструктора');
       _loadInstructor();
@@ -38,8 +37,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> with WidgetsBin
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Перезагружаем инструктора при каждом возвращении на страницу
-    // Это важно для отображения актуального состояния после открепления
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInstructor();
     });
@@ -55,7 +52,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> with WidgetsBin
     final user = Provider.of<AuthService>(context, listen: false).currentUser;
     if (user == null) return;
     
-    // Получаем актуальные данные пользователя с сервера через QueryBuilder
     String? instructorId;
     try {
       final query = QueryBuilder<ParseObject>(ParseObject('_User'))
@@ -67,13 +63,11 @@ class _StudentProfilePageState extends State<StudentProfilePage> with WidgetsBin
         instructorId = freshUser.get('instructorId');
         print('🔍 Получены свежие данные с сервера: instructorId = $instructorId');
         
-        // Принудительно обновляем локального пользователя
         if (instructorId == null) {
           user.set('instructorId', null);
           print('✅ Локально очищен instructorId у текущего пользователя');
         }
       } else {
-        // Если не удалось получить свежие данные, используем локальные
         instructorId = user.get('instructorId');
         print('⚠️ Не удалось получить свежие данные, используем локальные: instructorId = $instructorId');
       }
@@ -104,7 +98,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> with WidgetsBin
       if (response.success && response.result != null) {
         final data = response.result as Map<String, dynamic>;
         if (mounted) {
-          // Создаем временный объект для отображения данных инструктора
           final tempInstructor = <String, dynamic>{
             'firstname': data['firstName'],
             'surname': data['lastName'],
@@ -120,7 +113,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> with WidgetsBin
         }
       } else {
         print('❌ Ошибка получения инструктора: ${response.error?.message}');
-        // Если ошибка - возможно инструктор был удален или откреплен
         if (mounted) {
           setState(() {
             _instructor = null;
