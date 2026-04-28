@@ -9,6 +9,8 @@ import 'package:autoschool_btgp/archive_page.dart';
 import 'package:flutter/scheduler.dart';
 
 class StudentProfilePage extends StatefulWidget {
+  const StudentProfilePage({Key? key}) : super(key: key);
+  
   @override
   _StudentProfilePageState createState() => _StudentProfilePageState();
 }
@@ -102,12 +104,17 @@ class _StudentProfilePageState extends State<StudentProfilePage> with WidgetsBin
       if (response.success && response.result != null) {
         final data = response.result as Map<String, dynamic>;
         if (mounted) {
-          final tempUser = ParseUser(null, null, null);
-          tempUser.set('firstname', data['firstName']);
-          tempUser.set('surname', data['lastName']);
-          tempUser.set('patronymic', data['patronymic']);
+          // Создаем временный объект для отображения данных инструктора
+          final tempInstructor = <String, dynamic>{
+            'firstname': data['firstName'],
+            'surname': data['lastName'],
+            'patronymic': data['patronymic'],
+          };
           setState(() {
-            _instructor = tempUser;
+            _instructor = ParseUser(null, null, null);
+            _instructor!.set('firstname', tempInstructor['firstname']);
+            _instructor!.set('surname', tempInstructor['surname']);
+            _instructor!.set('patronymic', tempInstructor['patronymic']);
           });
           print('✅ Инструктор загружен: ${data['firstName']} ${data['lastName']}');
         }
