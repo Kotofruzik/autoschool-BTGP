@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parse_server_sdk/parse_server_sdk.dart';
+import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 
 class InstructorStudentsProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _students = [];
@@ -15,7 +15,10 @@ class InstructorStudentsProvider extends ChangeNotifier {
 
   /// Инициализирует LiveQuery подписку для отслеживания изменений
   Future<void> initializeLiveQuery(String instructorId) async {
+    print('🔵 [LiveQuery] Инициализация подписки для инструктора: $instructorId');
+    
     if (_currentInstructorId == instructorId && _subscription != null) {
+      print('✅ [LiveQuery] Подписка уже активна для этого инструктора');
       return; // Уже подписаны на этого инструктора
     }
 
@@ -23,9 +26,14 @@ class InstructorStudentsProvider extends ChangeNotifier {
     _currentInstructorId = instructorId;
 
     try {
-      // Создаём LiveQuery клиент
-      _liveQueryClient = await Parse().createLiveQueryClient();
+      // Создаём LiveQuery клиент с явным указанием URL
+      final parseInstance = Parse();
+      _liveQueryClient = await parseInstance.createLiveQueryClient(
+        liveQueryUrl: parseInstance.serverUrl!.replaceAll('http', 'ws') + '/subscriptions',
+      );
       
+      print('✅ [LiveQuery] Клиент создан: ${_liveQueryClient!.isConnected}');
+
       // Создаём запрос для отслеживания изменений пользователей с этим instructorId
       final query = QueryBuilder<ParseObject>(ParseObject('_User'))
         ..whereEqualTo('instructorId', instructorId);
@@ -33,20 +41,22 @@ class InstructorStudentsProvider extends ChangeNotifier {
       // Подписываемся на события
       _subscription = await _liveQueryClient!.subscribe(query);
       
+      print('✅ [LiveQuery] Подписка создана на запрос: $query');
+
       // Обработчик создания/обновления объекта (когда ученик привязывается)
       _subscription!.on(ParseLiveQueryEvent.create, (event) {
-        print('🔔 LiveQuery: новый ученик привязан');
+        print('🔔 [LiveQuery] CREATE: новый ученик привязан - ${event.data.objectId}');
         _handleStudentChange(event.data);
       });
 
       _subscription!.on(ParseLiveQueryEvent.update, (event) {
-        print('🔔 LiveQuery: данные ученика обновлены');
+        print('🔔 [LiveQuery] UPDATE: данные ученика обновлены - ${event.data.objectId}');
         _handleStudentChange(event.data);
       });
 
       // Обработчик удаления/отвязки ученика
       _subscription!.on(ParseLiveQueryEvent.delete, (event) {
-        print('🔔 LiveQuery: ученик откреплён');
+        print('🔔 [LiveQuery] DELETE: ученик удалён - ${event.data.objectId}');
         final studentId = event.data.objectId;
         if (studentId != null) {
           removeStudentLocally(studentId);
@@ -54,12 +64,12 @@ class InstructorStudentsProvider extends ChangeNotifier {
       });
 
       _subscription!.on(ParseLiveQueryEvent.enter, (event) {
-        print('🔔 LiveQuery: ученик вошёл в выборку (привязался)');
+        print('🔔 [LiveQuery] ENTER: ученик вошёл в выборку (привязался) - ${event.data.objectId}');
         _handleStudentChange(event.data);
       });
 
       _subscription!.on(ParseLiveQueryEvent.leave, (event) {
-        print('🔔 LiveQuery: ученик покинул выборку (открепился)');
+        print('🔔 [LiveQuery] LEAVE: ученик покинул выборку (открепился) - ${event.data.objectId}');
         final studentId = event.data.objectId;
         if (studentId != null) {
           removeStudentLocally(studentId);
@@ -69,9 +79,10 @@ class InstructorStudentsProvider extends ChangeNotifier {
       // Загружаем текущий список после подписки
       await loadStudents();
       
-      print('✅ LiveQuery подписка активирована для инструктора $instructorId');
-    } catch (e) {
-      print('❌ Ошибка при создании LiveQuery подписки: $e');
+      print('✅ [LiveQuery] Подписка полностью активирована для инструктора $instructorId');
+    } catch (e, stackTrace) {
+      print('❌ [LiveQuery] Ошибка при создании подписки: $e');
+      print('❌ [LiveQuery] Stack trace: $stackTrace');
     }
   }
 

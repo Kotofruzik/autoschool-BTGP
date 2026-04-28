@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parse_server_sdk/parse_server_sdk.dart';
+import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'instructor_student_preview_page.dart';
@@ -22,6 +22,7 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
       final instructorId = auth.currentUser?.objectId;
       
       if (instructorId != null) {
+        print('🔵 [InstructorStudentsPage] Инициализация LiveQuery для инструктора: $instructorId');
         // Инициализируем LiveQuery подписку для автоматического обновления
         await provider.initializeLiveQuery(instructorId);
       } else if (provider.students.isEmpty) {
