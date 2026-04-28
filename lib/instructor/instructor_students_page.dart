@@ -14,7 +14,7 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
   List<dynamic> _students = [];
   bool _isLoading = true;
   String? _error;
-  ParseSubscription? _studentSubscription;
+  LiveQueryEventListener? _liveQueryListener;
 
   @override
   void initState() {
@@ -25,8 +25,15 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
 
   @override
   void dispose() {
-    _studentSubscription?.unsubscribe();
+    _cleanupLiveQuery();
     super.dispose();
+  }
+
+  Future<void> _cleanupLiveQuery() async {
+    if (_liveQueryListener != null) {
+      await ParseObject('_User').removeLiveQueryEventListener(_liveQueryListener!);
+      print('✅ LiveQuery подписка очищена');
+    }
   }
 
   Future<void> _setupLiveQuery() async {
@@ -34,23 +41,37 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
     if (user == null || user.objectId == null) return;
 
     try {
-      // Подписываемся на изменения пользователей с instructorId = текущий инструктор
+      // Создаем запрос с фильтром по instructorId
       final query = QueryBuilder<ParseObject>(ParseObject('_User'))
         ..whereEqualTo('instructorId', user.objectId);
 
-      final client = ParseLiveQueryClient();
-      await client.connect();
+      // Настраиваем слушатель событий LiveQuery
+      _liveQueryListener = LiveQueryEventListener(
+        onCreate: (event) {
+          print('🔄 LiveQuery: новый ученик прикрепился');
+          _loadStudents();
+        },
+        onUpdate: (event) {
+          print('🔄 LiveQuery: обновлен ученик ${event.object?.objectId}');
+          _loadStudents();
+        },
+        onEnter: (event) {
+          print('🔄 LiveQuery: ученик вошел в запрос (прикрепился)');
+          _loadStudents();
+        },
+        onLeave: (event) {
+          print('🔄 LiveQuery: ученик покинул запрос (открепился)');
+          _loadStudents();
+        },
+        onDelete: (event) {
+          print('🔄 LiveQuery: ученик удален');
+          _loadStudents();
+        },
+      );
+
+      // Подписываемся на события с фильтром
+      await ParseObject('_User').subscribe(_liveQueryListener!, query: query);
       
-      final liveQuery = await client.subscribe(query);
-
-      _studentSubscription = liveQuery;
-
-      liveQuery.on<ParseObject>((event) {
-        print('🔄 LiveQuery событие: ${event.op} для пользователя ${event.object.objectId}');
-        // При любом изменении (create, update, delete) перезагружаем список
-        _loadStudents();
-      });
-
       print('✅ LiveQuery подписка настроена для инструктора ${user.objectId}');
     } catch (e) {
       print('❌ Ошибка настройки LiveQuery: $e');
