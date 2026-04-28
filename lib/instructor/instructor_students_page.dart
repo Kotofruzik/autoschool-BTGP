@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
-import 'dart:async';
 import '../services/auth_service.dart';
 import 'instructor_student_preview_page.dart';
 
@@ -15,28 +14,20 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
   List<dynamic> _students = [];
   bool _isLoading = true;
   String? _error;
-  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadStudents();
-    _startPeriodicRefresh();
   }
 
   @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    super.dispose();
-  }
-
-  void _startPeriodicRefresh() {
-    // Обновляем список каждые 5 секунд для проверки новых учеников
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (mounted && !_isLoading) {
-        _loadStudents();
-      }
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Обновляем список при возврате на страницу (например, после привязки ученика)
+    if (_students.isNotEmpty) {
+      _loadStudents();
+    }
   }
 
   Future<void> _loadStudents() async {
