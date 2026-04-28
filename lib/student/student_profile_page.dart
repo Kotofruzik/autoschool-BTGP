@@ -6,36 +6,79 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:autoschool_btgp/services/auth_service.dart';
 import 'package:autoschool_btgp/services/edit_profile_page.dart';
 import 'package:autoschool_btgp/archive_page.dart';
+import 'package:flutter/scheduler.dart';
 
 class StudentProfilePage extends StatefulWidget {
   @override
   _StudentProfilePageState createState() => _StudentProfilePageState();
 }
 
-class _StudentProfilePageState extends State<StudentProfilePage> {
+class _StudentProfilePageState extends State<StudentProfilePage> with WidgetsBindingObserver {
   ParseUser? _instructor;
   bool _isLoadingInstructor = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadInstructor();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Обновляем данные когда приложение возвращается в активное состояние
+    if (state == AppLifecycleState.resumed) {
+      print('🔄 Приложение вернулось в активное состояние, обновляем данные инструктора');
+      _loadInstructor();
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Перезагружаем инструктора при возврате на страницу (например, после открепления)
-    _loadInstructor();
+    // Перезагружаем инструктора при каждом возвращении на страницу
+    // Это важно для отображения актуального состояния после открепления
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInstructor();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _loadInstructor() async {
     final user = Provider.of<AuthService>(context, listen: false).currentUser;
     if (user == null) return;
     
-    // Получаем актуальные данные пользователя с сервера
-    await user.refresh();
-    final instructorId = user.get('instructorId');
+    // Получаем актуальные данные пользователя с сервера через QueryBuilder
+    String? instructorId;
+    try {
+      final query = QueryBuilder<ParseObject>(ParseObject('_User'))
+        ..whereEqualTo('objectId', user.objectId);
+      final response = await query.query();
+      
+      if (response.success && response.results != null && response.results!.isNotEmpty) {
+        final freshUser = response.results!.first;
+        instructorId = freshUser.get('instructorId');
+        print('🔍 Получены свежие данные с сервера: instructorId = $instructorId');
+        
+        // Принудительно обновляем локального пользователя
+        if (instructorId == null) {
+          user.set('instructorId', null);
+          print('✅ Локально очищен instructorId у текущего пользователя');
+        }
+      } else {
+        // Если не удалось получить свежие данные, используем локальные
+        instructorId = user.get('instructorId');
+        print('⚠️ Не удалось получить свежие данные, используем локальные: instructorId = $instructorId');
+      }
+    } catch (e) {
+      print('❌ Ошибка при получении данных пользователя: $e');
+      instructorId = user.get('instructorId');
+    }
     
     print('🔍 Проверка instructorId: текущее значение = $instructorId');
     
