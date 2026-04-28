@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../services/auth_service.dart';
 import 'instructor_student_preview_page.dart';
 
@@ -14,103 +15,28 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
   List<dynamic> _students = [];
   bool _isLoading = true;
   String? _error;
-  ParseLiveQueryClient? _liveQueryClient;
-  LiveQueryCallback? _onCreateCallback;
-  LiveQueryCallback? _onUpdateCallback;
-  LiveQueryCallback? _onEnterCallback;
-  LiveQueryCallback? _onLeaveCallback;
-  LiveQueryCallback? _onDeleteCallback;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadStudents();
-    _setupLiveQuery();
+    _startPeriodicRefresh();
   }
 
   @override
   void dispose() {
-    _cleanupLiveQuery();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _cleanupLiveQuery() async {
-    if (_liveQueryClient != null) {
-      final user = Provider.of<AuthService>(context, listen: false).currentUser;
-      if (user != null && user.objectId != null) {
-        final query = QueryBuilder<ParseObject>(ParseObject('_User'))
-          ..whereEqualTo('instructorId', user.objectId);
-        
-        if (_onCreateCallback != null) {
-          await _liveQueryClient!.unsubscribe(query, event: LiveQueryEventType.create, callback: _onCreateCallback!);
-        }
-        if (_onUpdateCallback != null) {
-          await _liveQueryClient!.unsubscribe(query, event: LiveQueryEventType.update, callback: _onUpdateCallback!);
-        }
-        if (_onEnterCallback != null) {
-          await _liveQueryClient!.unsubscribe(query, event: LiveQueryEventType.enter, callback: _onEnterCallback!);
-        }
-        if (_onLeaveCallback != null) {
-          await _liveQueryClient!.unsubscribe(query, event: LiveQueryEventType.leave, callback: _onLeaveCallback!);
-        }
-        if (_onDeleteCallback != null) {
-          await _liveQueryClient!.unsubscribe(query, event: LiveQueryEventType.delete, callback: _onDeleteCallback!);
-        }
+  void _startPeriodicRefresh() {
+    // Обновляем список каждые 5 секунд для проверки новых учеников
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted && !_isLoading) {
+        _loadStudents();
       }
-      await _liveQueryClient!.disconnect();
-      print('✅ LiveQuery подписка очищена');
-    }
-  }
-
-  Future<void> _setupLiveQuery() async {
-    final user = Provider.of<AuthService>(context, listen: false).currentUser;
-    if (user == null || user.objectId == null) return;
-
-    try {
-      // Создаем запрос с фильтром по instructorId
-      final query = QueryBuilder<ParseObject>(ParseObject('_User'))
-        ..whereEqualTo('instructorId', user.objectId);
-
-      // Создаем и подключаем LiveQuery клиент
-      _liveQueryClient = await ParseLiveQueryClient.sharedInstance();
-      
-      // Настраиваем колбэки для событий LiveQuery
-      _onCreateCallback = (event) {
-        print('🔄 LiveQuery: новый ученик прикрепился');
-        _loadStudents();
-      };
-      
-      _onUpdateCallback = (event) {
-        print('🔄 LiveQuery: обновлен ученик ${event.object?.objectId}');
-        _loadStudents();
-      };
-      
-      _onEnterCallback = (event) {
-        print('🔄 LiveQuery: ученик вошел в запрос (прикрепился)');
-        _loadStudents();
-      };
-      
-      _onLeaveCallback = (event) {
-        print('🔄 LiveQuery: ученик покинул запрос (открепился)');
-        _loadStudents();
-      };
-      
-      _onDeleteCallback = (event) {
-        print('🔄 LiveQuery: ученик удален');
-        _loadStudents();
-      };
-
-      // Подписываемся на события с фильтром
-      await _liveQueryClient!.subscribe(query, event: LiveQueryEventType.create, callback: _onCreateCallback!);
-      await _liveQueryClient!.subscribe(query, event: LiveQueryEventType.update, callback: _onUpdateCallback!);
-      await _liveQueryClient!.subscribe(query, event: LiveQueryEventType.enter, callback: _onEnterCallback!);
-      await _liveQueryClient!.subscribe(query, event: LiveQueryEventType.leave, callback: _onLeaveCallback!);
-      await _liveQueryClient!.subscribe(query, event: LiveQueryEventType.delete, callback: _onDeleteCallback!);
-      
-      print('✅ LiveQuery подписка настроена для инструктора ${user.objectId}');
-    } catch (e) {
-      print('❌ Ошибка настройки LiveQuery: $e');
-    }
+    });
   }
 
   Future<void> _loadStudents() async {
