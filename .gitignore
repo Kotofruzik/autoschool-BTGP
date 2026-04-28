@@ -1,41 +1,93 @@
-```
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
 # Dependencies
-.pub/
-.dart_tool/
-.build/
-
-# Logs
-*.log
-
-# Environment variables
+node_modules/
+venv/
+.venv/
 .env
 .env.local
-*.env.*
+.env.*
 
-# IDE files
-.idea/
-.vscode/
+# Build outputs
+dist/
+build/
+target/
+*.jar
+*.war
+*.zip
+*.tar.gz
+
+# Logs and temp files
+*.log
+*.tmp
 *.swp
 *.swo
+*.bak
+*.~
+*.pyc
+*.pyo
+*.pyd
 
 # OS generated files
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Icon?
+.directory
+.Trashes
+*.swp
+*.swo
 
-# Build outputs
-build/
-dist/
-target/
+# Editor files
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
 
 # Coverage reports
 coverage/
 htmlcov/
-*.coverage
+.coverage
+*.cover
+coverage.xml
+
+# Testing
+.pytest_cache/
+.mypy_cache/
+.nyc_output/
+coverage/
+
+# Distribution / packaging
+.Python
+*.egg-info/
+MANIFEST
+
+# Environment variables
+.env
+.envrc
+.direnv/
+
+# IDE specific
+*.swp
+*.swo
+*~
 
 # Compressed files
 *.zip
-*.gz
 *.tar
+*.gz
 *.tgz
 *.bz2
 *.xz
@@ -55,4 +107,3 @@ htmlcov/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
-```

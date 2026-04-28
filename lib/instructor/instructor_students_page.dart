@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import 'instructor_student_preview_page.dart';
+import '../services/instructor_students_provider.dart';
+import '../services/auth_service.dart';
 
 class InstructorStudentsPage extends StatefulWidget {
   @override
@@ -9,47 +12,26 @@ class InstructorStudentsPage extends StatefulWidget {
 }
 
 class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
-  List<dynamic> _students = [];
-  bool _isLoading = true;
-  String? _error;
-
   @override
   void initState() {
     super.initState();
-    _loadStudents();
-  }
-
-  Future<void> _loadStudents() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final function = ParseCloudFunction('getMyStudents');
-      final response = await function.execute(parameters: {});
-
-      if (response.success && response.result != null) {
-        setState(() {
-          _students = List<dynamic>.from(response.result);
-        });
-      } else {
-        setState(() {
-          _error = response.error?.message ?? 'Ошибка загрузки';
-        });
+    // Загружаем учеников и подписываемся на LiveQuery при инициализации страницы
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = Provider.of<InstructorStudentsProvider>(context, listen: false);
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final instructorId = auth.currentUser?.objectId;
+      
+      if (instructorId != null) {
+        // Инициализируем LiveQuery подписку для автоматического обновления
+        await provider.initializeLiveQuery(instructorId);
+      } else if (provider.students.isEmpty) {
+        // Если нет ID инструктора, просто загружаем список
+        await provider.loadStudents();
       }
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    });
   }
 
-  Future<void> _detachStudent(Map<String, dynamic> student) async {
+  Future<void> _detachStudent(Map<String, dynamic> student, InstructorStudentsProvider provider) async {
     final studentName = '${student['firstname'] ?? ''} ${student['surname'] ?? ''}'.trim();
     final confirm = await showDialog<bool>(
       context: context,
@@ -71,7 +53,7 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
 
     if (confirm != true) return;
 
-    setState(() => _isLoading = true);
+    setState(() {}); // Trigger loading state via provider
     try {
       final function = ParseCloudFunction('detachStudent');
       final response = await function.execute(parameters: {'studentId': student['id']});
@@ -104,7 +86,7 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ученик "$studentName" откреплён')),
       );
-      await _loadStudents();
+      // LiveQuery автоматически обновит список при изменении данных
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -112,84 +94,88 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() {});
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.blue, Colors.lightBlueAccent],
-        ),
-      ),
-      child: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
-            : _error != null
-            ? Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Ошибка: $_error', style: const TextStyle(color: Colors.white)),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: _loadStudents,
-                child: const Text('Повторить'),
+    return Consumer<InstructorStudentsProvider>(
+      builder: (context, provider, _) {
+        return Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.blue, Colors.lightBlueAccent],
+            ),
+          ),
+          child: SafeArea(
+            child: provider.isLoading
+                ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                : provider.error != null
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Ошибка: ${provider.error}', style: const TextStyle(color: Colors.white)),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () => provider.loadStudents(),
+                    child: const Text('Повторить'),
+                  ),
+                ],
               ),
-            ],
-          ),
-        )
-            : _students.isEmpty
-            ? const Center(
-          child: Text(
-            'У вас пока нет учеников',
-            style: TextStyle(color: Colors.white, fontSize: 18),
-          ),
-        )
-            : ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: _students.length,
-          itemBuilder: (ctx, index) {
-            final student = _students[index] as Map<String, dynamic>;
-            final name = '${student['firstname'] ?? ''} ${student['surname'] ?? ''}'.trim();
-            final photoUrl = student['photo'] as String?;
+            )
+                : provider.students.isEmpty
+                ? const Center(
+              child: Text(
+                'У вас пока нет учеников',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            )
+                : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: provider.students.length,
+              itemBuilder: (ctx, index) {
+                final student = provider.students[index];
+                final name = '${student['firstname'] ?? ''} ${student['surname'] ?? ''}'.trim();
+                final photoUrl = student['photo'] as String?;
 
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  backgroundImage: photoUrl != null
-                      ? CachedNetworkImageProvider(photoUrl)
-                      : null,
-                  child: photoUrl == null
-                      ? Text(
-                    name.isNotEmpty ? name[0] : '?',
-                    style: const TextStyle(color: Colors.white),
-                  )
-                      : null,
-                ),
-                title: Text(name.isNotEmpty ? name : 'Без имени'),
-                subtitle: Text(student['email'] ?? ''),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => InstructorStudentPreviewPage(studentData: student),
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue,
+                      backgroundImage: photoUrl != null
+                          ? CachedNetworkImageProvider(photoUrl)
+                          : null,
+                      child: photoUrl == null
+                          ? Text(
+                        name.isNotEmpty ? name[0] : '?',
+                        style: const TextStyle(color: Colors.white),
+                      )
+                          : null,
                     ),
-                  );
-                },
-                onLongPress: () => _detachStudent(student),
-              ),
-            );
-          },
-        ),
-      ),
+                    title: Text(name.isNotEmpty ? name : 'Без имени'),
+                    subtitle: Text(student['email'] ?? ''),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => InstructorStudentPreviewPage(studentData: student),
+                        ),
+                      );
+                    },
+                    onLongPress: () => _detachStudent(student, provider),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
