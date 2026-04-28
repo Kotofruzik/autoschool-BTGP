@@ -14,7 +14,12 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
   List<dynamic> _students = [];
   bool _isLoading = true;
   String? _error;
-  LiveQueryEventListener? _liveQueryListener;
+  ParseLiveQueryClient? _liveQueryClient;
+  LiveQueryCallback? _onCreateCallback;
+  LiveQueryCallback? _onUpdateCallback;
+  LiveQueryCallback? _onEnterCallback;
+  LiveQueryCallback? _onLeaveCallback;
+  LiveQueryCallback? _onDeleteCallback;
 
   @override
   void initState() {
@@ -30,8 +35,29 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
   }
 
   Future<void> _cleanupLiveQuery() async {
-    if (_liveQueryListener != null) {
-      await ParseObject('_User').removeLiveQueryEventListener(_liveQueryListener!);
+    if (_liveQueryClient != null) {
+      final user = Provider.of<AuthService>(context, listen: false).currentUser;
+      if (user != null && user.objectId != null) {
+        final query = QueryBuilder<ParseObject>(ParseObject('_User'))
+          ..whereEqualTo('instructorId', user.objectId);
+        
+        if (_onCreateCallback != null) {
+          await _liveQueryClient!.unsubscribe(query, event: LiveQueryEventType.create, callback: _onCreateCallback!);
+        }
+        if (_onUpdateCallback != null) {
+          await _liveQueryClient!.unsubscribe(query, event: LiveQueryEventType.update, callback: _onUpdateCallback!);
+        }
+        if (_onEnterCallback != null) {
+          await _liveQueryClient!.unsubscribe(query, event: LiveQueryEventType.enter, callback: _onEnterCallback!);
+        }
+        if (_onLeaveCallback != null) {
+          await _liveQueryClient!.unsubscribe(query, event: LiveQueryEventType.leave, callback: _onLeaveCallback!);
+        }
+        if (_onDeleteCallback != null) {
+          await _liveQueryClient!.unsubscribe(query, event: LiveQueryEventType.delete, callback: _onDeleteCallback!);
+        }
+      }
+      await _liveQueryClient!.disconnect();
       print('✅ LiveQuery подписка очищена');
     }
   }
@@ -45,32 +71,41 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
       final query = QueryBuilder<ParseObject>(ParseObject('_User'))
         ..whereEqualTo('instructorId', user.objectId);
 
-      // Настраиваем слушатель событий LiveQuery
-      _liveQueryListener = LiveQueryEventListener(
-        onCreate: (event) {
-          print('🔄 LiveQuery: новый ученик прикрепился');
-          _loadStudents();
-        },
-        onUpdate: (event) {
-          print('🔄 LiveQuery: обновлен ученик ${event.object?.objectId}');
-          _loadStudents();
-        },
-        onEnter: (event) {
-          print('🔄 LiveQuery: ученик вошел в запрос (прикрепился)');
-          _loadStudents();
-        },
-        onLeave: (event) {
-          print('🔄 LiveQuery: ученик покинул запрос (открепился)');
-          _loadStudents();
-        },
-        onDelete: (event) {
-          print('🔄 LiveQuery: ученик удален');
-          _loadStudents();
-        },
-      );
+      // Создаем и подключаем LiveQuery клиент
+      _liveQueryClient = await ParseLiveQueryClient.sharedInstance();
+      
+      // Настраиваем колбэки для событий LiveQuery
+      _onCreateCallback = (event) {
+        print('🔄 LiveQuery: новый ученик прикрепился');
+        _loadStudents();
+      };
+      
+      _onUpdateCallback = (event) {
+        print('🔄 LiveQuery: обновлен ученик ${event.object?.objectId}');
+        _loadStudents();
+      };
+      
+      _onEnterCallback = (event) {
+        print('🔄 LiveQuery: ученик вошел в запрос (прикрепился)');
+        _loadStudents();
+      };
+      
+      _onLeaveCallback = (event) {
+        print('🔄 LiveQuery: ученик покинул запрос (открепился)');
+        _loadStudents();
+      };
+      
+      _onDeleteCallback = (event) {
+        print('🔄 LiveQuery: ученик удален');
+        _loadStudents();
+      };
 
       // Подписываемся на события с фильтром
-      await ParseObject('_User').subscribe(_liveQueryListener!, query: query);
+      await _liveQueryClient!.subscribe(query, event: LiveQueryEventType.create, callback: _onCreateCallback!);
+      await _liveQueryClient!.subscribe(query, event: LiveQueryEventType.update, callback: _onUpdateCallback!);
+      await _liveQueryClient!.subscribe(query, event: LiveQueryEventType.enter, callback: _onEnterCallback!);
+      await _liveQueryClient!.subscribe(query, event: LiveQueryEventType.leave, callback: _onLeaveCallback!);
+      await _liveQueryClient!.subscribe(query, event: LiveQueryEventType.delete, callback: _onDeleteCallback!);
       
       print('✅ LiveQuery подписка настроена для инструктора ${user.objectId}');
     } catch (e) {

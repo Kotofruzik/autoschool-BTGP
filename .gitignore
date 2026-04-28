@@ -1,144 +1,66 @@
-# Dependencies
-.pub/
-.buildlog
-.flutter-plugins
-.flutter-plugin-dependencies
-.packages
-
+```
 # Build outputs
-build/
-**/ios/Flutter/.last_build_id
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
 
-# Generated plugin build files
-**/android/**/generated_plugin_registrant.*
+# Dependencies
+node_modules/
+venv/
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+target/
+.gradle/
 
-# Android
-**/android/**/gradle-wrapper.jar
-**/android/.gradle
-**/android/build/
-**/android/app/build/
-
-# iOS
-**/ios/Pods/
-**/ios/.symlinks
-**/ios/build/
-**/ios/Flutter/engine/
-**/ios/Flutter/App.framework
-**/ios/Flutter/Flutter.framework
-**/ios/Flutter/Generated.xcconfig
-
-# macOS
-**/macos/Pods/
-**/macos/.symlinks
-**/macos/build/
-**/macos/Flutter/ephemeral
-**/macos/Flutter/FlutterMacOS.framework
-
-# Windows
-**/windows/Flutter/ephemeral
-**/windows/runner/Release
-**/windows/runner/Debug
-**/windows/runner/x64
-
-# Linux
-**/linux/Flutter/ephemeral
-**/linux/bundle
-
-# Web
-**/web/build/
-
-# Logs
-logs/
-*.log
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-
-# Environment variables
-.env
-.env.local
-.env.*
-!.env.example
-
-# IDE
+# Editor/IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
+*.tmp
 
-# OS generated files
+# System files
 .DS_Store
 Thumbs.db
-ehthumbs.db
-Icon?
-.directory
-.Trashes
-*.nib
-settings.bundle
+.env
+.env.local
+*.env.*
 
-# Dart tooling
-.dart_tool/
-.dart_server_pid
-.web_socket_server
+# Logs
+*.log
 
 # Coverage
 coverage/
-*.coverage
+htmlcov/
+.coverage
 
-# Testing
-**/test/**/chrome_driver.log
-**/integration_test/**/app.*.shard
-**/integration_test/**/platform_views_integration_test.*.shard
-**/integration_test/**/plugin_integration_test.*.shard
-**/integration_test/**/text_input_test.*.shard
-**/integration_test/**/web_e2e_test.*.shard
-**/integration_test/**/web_engine_svg_test.*.shard
-**/integration_test/**/web_plugins_test.*.shard
-**/integration_test/**/web_screenshot_test.*.shard
-**/integration_test/**/web_text_editing_test.*.shard
-**/integration_test/**/web_ui_test.*.shard
-**/integration_test/**/web_worker_test.*.shard
-**/integration_test/**/web_worker_with_platform_channel_test.*.shard
-**/integration_test/**/web_worker_with_web_socket_test.*.shard
-**/integration_test/**/web_worker_with_web_storage_test.*.shard
-**/integration_test/**/web_worker_with_web_sql_test.*.shard
-**/integration_test/**/web_worker_with_web_rtc_test.*.shard
-**/integration_test/**/web_worker_with_web_notifications_test.*.shard
-**/integration_test/**/web_worker_with_web_push_test.*.shard
-**/integration_test/**/web_worker_with_web_geolocation_test.*.shard
-**/integration_test/**/web_worker_with_web_battery_test.*.shard
-**/integration_test/**/web_worker_with_web_vibration_test.*.shard
-**/integration_test/**/web_worker_with_web_midi_test.*.shard
-**/integration_test/**/web_worker_with_web_bluetooth_test.*.shard
-**/integration_test/**/web_worker_with_web_usb_test.*.shard
-**/integration_test/**/web_worker_with_web_serial_test.*.shard
-**/integration_test/**/web_worker_with_web_hid_test.*.shard
-**/integration_test/**/web_worker_with_web_nfc_test.*.shard
-**/integration_test/**/web_worker_with_web_payment_request_test.*.shard
-**/integration_test/**/web_worker_with_web_app_badge_test.*.shard
-**/integration_test/**/web_worker_with_web_clipboard_test.*.shard
-**/integration_test/**/web_worker_with_web_contacts_test.*.shard
-**/integration_test/**/web_worker_with_web_file_system_access_test.*.shard
-**/integration_test/**/web_worker_with_web_window_placement_test.*.shard
-**/integration_test/**/web_worker_with_web_speech_synthesis_test.*.shard
-**/integration_test/**/web_worker_with_web_speech_recognition_test.*.shard
-**/integration_test/**/web_worker_with_web_media_capabilities_test.*.shard
-**/integration_test/**/web_worker_with_web_media_session_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_record_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_image_capture_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_depth_sensing_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_face_detection_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_body_detection_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_hand_tracking_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_object_detection_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_pose_estimation_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_segmentation_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_super_resolution_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_video_processing_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_video_stabilization_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_video_super_resolution_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_video_summarization_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_video_understanding_test.*.shard
-**/integration_test/**/web_worker_with_web_media_stream_video_understanding_test.*.shard
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+```
