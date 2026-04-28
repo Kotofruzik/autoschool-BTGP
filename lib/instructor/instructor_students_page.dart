@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:parse_server_sdk/parse_server_sdk.dart';
+import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
 import 'instructor_student_preview_page.dart';
 
 class InstructorStudentsPage extends StatefulWidget {
@@ -12,11 +14,47 @@ class _InstructorStudentsPageState extends State<InstructorStudentsPage> {
   List<dynamic> _students = [];
   bool _isLoading = true;
   String? _error;
+  ParseSubscription? _studentSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadStudents();
+    _setupLiveQuery();
+  }
+
+  @override
+  void dispose() {
+    _studentSubscription?.unsubscribe();
+    super.dispose();
+  }
+
+  Future<void> _setupLiveQuery() async {
+    final user = Provider.of<AuthService>(context, listen: false).currentUser;
+    if (user == null || user.objectId == null) return;
+
+    try {
+      // Подписываемся на изменения пользователей с instructorId = текущий инструктор
+      final query = QueryBuilder<ParseObject>(ParseObject('_User'))
+        ..whereEqualTo('instructorId', user.objectId);
+
+      final client = ParseLiveQueryClient();
+      await client.connect();
+      
+      final liveQuery = await client.subscribe(query);
+
+      _studentSubscription = liveQuery;
+
+      liveQuery.on<ParseObject>((event) {
+        print('🔄 LiveQuery событие: ${event.op} для пользователя ${event.object.objectId}');
+        // При любом изменении (create, update, delete) перезагружаем список
+        _loadStudents();
+      });
+
+      print('✅ LiveQuery подписка настроена для инструктора ${user.objectId}');
+    } catch (e) {
+      print('❌ Ошибка настройки LiveQuery: $e');
+    }
   }
 
   Future<void> _loadStudents() async {

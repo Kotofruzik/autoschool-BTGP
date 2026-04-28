@@ -101,6 +101,7 @@ void main() async {
     clientKey: keyClientKey,
     autoSendSessionId: true,
     debug: true,
+    liveQueryUrl: 'wss://parseapi.back4app.com',
   );
 
   await Firebase.initializeApp();
