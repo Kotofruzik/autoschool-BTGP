@@ -1,5 +1,6 @@
 import 'package:autoschool_btgp/notification_service.dart';
 import 'package:autoschool_btgp/services/users_provider.dart';
+import 'package:autoschool_btgp/services/instructor_students_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -93,7 +94,7 @@ void main() async {
 
   const keyApplicationId = 'qCxbZic6eqme0pvScG5jLoCxDUxztB9FGuiXhEiy';
   const keyClientKey = '50yEotCNReUkwSd7nhVmhYnoZspmLcbizp1GJC3v';
-  const keyServerUrl = 'https://parseapi.back4app.com';
+  const keyServerUrl = 'https://parse.back4app.com';
 
   await Parse().initialize(
     keyApplicationId,
@@ -123,6 +124,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => UsersProvider()),
+        ChangeNotifierProvider(create: (_) => InstructorStudentsProvider()),
       ],
       child: MaterialApp(
         title: 'Автошкола',
