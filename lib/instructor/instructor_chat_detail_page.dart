@@ -34,7 +34,7 @@ class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
-    ChatService.unsubscribeFromMessages();
+    ChatService.dispose();
     super.dispose();
   }
 
@@ -104,42 +104,79 @@ class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
     final text = _messageController.text.trim();
     if (text.isEmpty || _currentUser == null) return;
 
+    print('📤 Отправляем сообщение: "$text"');
+    
     final message = await ChatService.sendMessage(
       senderId: _currentUser!.objectId!,
       receiverId: widget.participant.userId,
       text: text,
     );
 
+    print('📨 Результат: ${message != null ? "успешно" : "ошибка"}');
+
     if (message != null && mounted) {
       setState(() {
         _messages.add(message);
+        _messageController.clear();
       });
-      _messageController.clear();
       _scrollToBottom();
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Не удалось отправить сообщение')),
+      );
     }
   }
 
   Future<void> _sendPhoto() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      print('📷 Выбор фото...');
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery);
 
-    if (image == null || _currentUser == null) return;
+      if (image == null) {
+        print('⚠️ Фото не выбрано');
+        return;
+      }
 
-    final imageUrl = await ChatService.uploadChatPhoto(image, _currentUser!.objectId!);
-    
-    if (imageUrl != null) {
-      final message = await ChatService.sendMessage(
-        senderId: _currentUser!.objectId!,
-        receiverId: widget.participant.userId,
-        text: '',
-        imageUrl: imageUrl,
-      );
+      if (_currentUser == null) {
+        print('❌ Пользователь не найден');
+        return;
+      }
 
-      if (message != null && mounted) {
-        setState(() {
-          _messages.add(message);
-        });
-        _scrollToBottom();
+      print('📤 Загружаем фото...');
+      final imageUrl = await ChatService.uploadChatPhoto(image, _currentUser!.objectId!);
+      
+      if (imageUrl != null) {
+        print('📨 Отправляем сообщение с фото...');
+        final message = await ChatService.sendMessage(
+          senderId: _currentUser!.objectId!,
+          receiverId: widget.participant.userId,
+          text: '',
+          imageUrl: imageUrl,
+        );
+
+        if (message != null && mounted) {
+          setState(() {
+            _messages.add(message);
+          });
+          _scrollToBottom();
+          print('✅ Фото отправлено');
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('❌ Не удалось отправить фото')),
+          );
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Не удалось загрузить фото')),
+        );
+      }
+    } catch (e) {
+      print('❌ Ошибка отправки фото: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Ошибка: $e')),
+        );
       }
     }
   }
