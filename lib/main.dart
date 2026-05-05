@@ -14,6 +14,7 @@ import 'package:autoschool_btgp/student/student_home_page.dart';
 import 'package:autoschool_btgp/instructor/instructor_home_page.dart';
 import 'package:autoschool_btgp/admin/admin_home_page.dart';
 import 'package:autoschool_btgp/instructor/create_lesson_page.dart';
+import 'package:autoschool_btgp/models/chat_message.dart';
 import 'dart:convert';
 
 @pragma('vm:entry-point')
@@ -94,6 +95,9 @@ void main() async {
   const keyApplicationId = 'qCxbZic6eqme0pvScG5jLoCxDUxztB9FGuiXhEiy';
   const keyClientKey = '50yEotCNReUkwSd7nhVmhYnoZspmLcbizp1GJC3v';
   const keyServerUrl = 'https://parseapi.back4app.com';
+
+  // Регистрируем класс ChatMessage для работы с Parse
+  ParseObject.registerSubclass('ChatMessage', () => ParseObject('ChatMessage'));
 
   await Parse().initialize(
     keyApplicationId,

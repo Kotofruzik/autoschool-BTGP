@@ -27,6 +27,15 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
     _initializeChat();
   }
 
+  @override
+  void dispose() {
+    // Отписываемся от сообщений при закрытии экрана
+    ChatService.unsubscribeFromMessages();
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _initializeChat() async {
     final auth = Provider.of<AuthService>(context, listen: false);
     _currentUser = auth.currentUser;
@@ -52,6 +61,25 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
 
     await _loadInstructorInfo(instructorId);
     await _loadMessages(instructorId);
+    _subscribeToNewMessages(instructorId);
+  }
+
+
+  void _subscribeToNewMessages(String instructorId) {
+    if (_currentUser == null) return;
+    
+    ChatService.subscribeToMessages(
+      userId1: _currentUser!.objectId!,
+      userId2: instructorId,
+      onNewMessage: (message) {
+        if (mounted) {
+          setState(() {
+            _messages.add(message);
+          });
+          _scrollToBottom();
+        }
+      },
+    );
   }
 
   Future<void> _loadInstructorInfo(String instructorId) async {

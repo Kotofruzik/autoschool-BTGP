@@ -15,6 +15,10 @@ class ChatService {
   static const String _region = 'ru-central1';
   static const String _endpoint = 'storage.yandexcloud.net';
 
+  // Подписка на новые сообщения в реальном времени
+  static ParseSubscription? _messageSubscription;
+  static LiveQueryClient? _liveQueryClient;
+  
   // Получить чат между двумя пользователями
   static Future<List<ChatMessage>> getChatMessages(String userId1, String userId2, {int limit = 50}) async {
     try {
@@ -72,6 +76,53 @@ class ChatService {
       print('Ошибка отправки сообщения: $e');
       return null;
     }
+  }
+
+  // Подписаться на новые сообщения в реальном времени
+  static void subscribeToMessages({
+    required String userId1,
+    required String userId2,
+    required Function(ChatMessage) onNewMessage,
+  }) {
+    try {
+      // Закрываем предыдущее соединение если есть
+      _liveQueryClient?.disconnect();
+      
+      final query = QueryBuilder<ParseObject>(ParseObject(_className))
+        ..whereContainedIn('senderId', [userId1, userId2])
+        ..whereContainedIn('receiverId', [userId1, userId2]);
+
+      _liveQueryClient = LiveQueryClient(
+        url: 'wss://parseapi.back4app.com',
+        applicationId: 'qCxbZic6eqme0pvScG5jLoCxDUxztB9FGuiXhEiy',
+        clientKey: '50yEotCNReUkwSd7nhVmhYnoZspmLcbizp1GJC3v',
+      );
+
+      _liveQueryClient!.connect();
+
+      _messageSubscription = _liveQueryClient!.subscribe(query);
+      
+      _messageSubscription!.on(LiveQueryEvent.create, (event) {
+        if (event is LiveQueryCreateEvent) {
+          final obj = event.parseObject;
+          final message = ChatMessage.fromParseObject(obj);
+          onNewMessage(message);
+        }
+      });
+
+      print('✅ Подписка на сообщения активирована для $userId1 <-> $userId2');
+    } catch (e) {
+      print('❌ Ошибка подписки на сообщения: $e');
+    }
+  }
+
+  // Отписаться от сообщений
+  static void unsubscribeFromMessages() {
+    _messageSubscription?.unsubscribe();
+    _liveQueryClient?.disconnect();
+    _messageSubscription = null;
+    _liveQueryClient = null;
+    print('🔕 Подписка на сообщения отменена');
   }
 
   // Редактировать сообщение

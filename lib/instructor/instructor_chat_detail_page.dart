@@ -30,6 +30,15 @@ class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
     _initializeChat();
   }
 
+  @override
+  void dispose() {
+    // Отписываемся от сообщений при закрытии экрана
+    ChatService.unsubscribeFromMessages();
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _initializeChat() async {
     final auth = Provider.of<AuthService>(context, listen: false);
     _currentUser = auth.currentUser;
@@ -43,6 +52,24 @@ class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
     }
 
     await _loadMessages();
+    _subscribeToNewMessages();
+  }
+
+  void _subscribeToNewMessages() {
+    if (_currentUser == null) return;
+    
+    ChatService.subscribeToMessages(
+      userId1: _currentUser!.objectId!,
+      userId2: widget.participant.userId,
+      onNewMessage: (message) {
+        if (mounted) {
+          setState(() {
+            _messages.add(message);
+          });
+          _scrollToBottom();
+        }
+      },
+    );
   }
 
   Future<void> _loadMessages() async {
