@@ -158,7 +158,8 @@ class ChatService {
       await minio.putObject(
         _bucket,
         key,
-        fileData,
+        Stream.value(fileData),
+        size: fileData.length,
         metadata: {'Content-Type': 'image/jpeg'},
       );
 
