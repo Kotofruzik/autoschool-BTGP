@@ -83,13 +83,25 @@ class ChatService {
         obj.set('imageUrl', imageUrl);
       }
       obj.set('isDeleted', false);
+      
+      // Проверяем ACL перед сохранением
+      final acl = ParseACL();
+      acl.setPublicReadAccess(true);
+      acl.setPublicWriteAccess(true);
+      acl.setWriteAccess(senderId, true);
+      acl.setReadAccess(senderId, true);
+      acl.setReadAccess(receiverId, true);
+      obj.setACL(acl);
 
+      print('🔍 [CHAT] Попытка сохранения объекта...');
       final response = await obj.save();
       
       print('🔍 [CHAT] Response success: ${response.success}');
       print('🔍 [CHAT] Response error: ${response.error}');
+      print('🔍 [CHAT] Response statusCode: ${response.statusCode}');
       print('🔍 [CHAT] Object objectId after save: ${obj.objectId}');
       print('🔍 [CHAT] Object createdAt after save: ${obj.get('createdAt')}');
+      print('🔍 [CHAT] Full response: ${response.result}');
       
       if (response.success && obj.objectId != null) {
         // После save() объект obj должен содержать objectId и createdAt
@@ -106,6 +118,7 @@ class ChatService {
         );
       } else {
         print('❌ [CHAT] Ошибка отправки: ${response.error?.message ?? "objectId is null"}');
+        print('❌ [CHAT] Error code: ${response.error?.code}');
         return null;
       }
     } catch (e, stackTrace) {

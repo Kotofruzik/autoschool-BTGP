@@ -93,21 +93,34 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
   }
 
   Future<void> _sendMessage() async {
+    print('🔵 [UI] Кнопка отправки нажата');
+    
     final text = _messageController.text.trim();
-    if (text.isEmpty || _currentUser == null || _instructor == null) return;
+    if (text.isEmpty || _currentUser == null || _instructor == null) {
+      print('⚠️ [UI] Не отправлено: text empty=${text.isEmpty}, currentUser=${_currentUser == null}, instructor=${_instructor == null}');
+      return;
+    }
 
+    print('📤 [CHAT] Отправка сообщения от ${_currentUser!.objectId!} к ${_instructor!.userId}: $text');
+    
     final message = await ChatService.sendMessage(
       senderId: _currentUser!.objectId!,
       receiverId: _instructor!.userId,
       text: text,
     );
 
+    print('🔵 [UI] Сообщение получено: ${message != null}');
+    
     if (message != null && mounted) {
       setState(() {
         _messages.add(message);
       });
       _messageController.clear();
+      FocusScope.of(context).unfocus(); // Скрыть клавиатуру
       _scrollToBottom();
+      print('✅ [UI] Сообщение добавлено в чат');
+    } else {
+      print('❌ [UI] Ошибка: сообщение не было сохранено или виджет не mounted');
     }
   }
 
