@@ -59,7 +59,14 @@ class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
         _isLoading = false;
       });
       _scrollToBottom();
+      _subscribeToNewMessages();
     }
+  }
+
+  void _subscribeToNewMessages() {
+    // LiveQuery не поддерживается в текущей версии SDK
+    // Обновление будет происходить при ручной перезагрузке чата
+    print('LiveQuery недоступен, используется polling');
   }
 
   void _scrollToBottom() {

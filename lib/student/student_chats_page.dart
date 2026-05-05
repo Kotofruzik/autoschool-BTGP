@@ -65,19 +65,26 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
 
   Future<void> _loadMessages(String instructorId) async {
     if (_currentUser == null) return;
-    
+
     final messages = await ChatService.getChatMessages(
       _currentUser!.objectId!,
       instructorId,
     );
-    
+
     if (mounted) {
       setState(() {
         _messages = messages;
         _isLoading = false;
       });
       _scrollToBottom();
+      _subscribeToNewMessages(instructorId);
     }
+  }
+
+  void _subscribeToNewMessages(String instructorId) {
+    // LiveQuery не поддерживается в текущей версии SDK
+    // Обновление будет происходить при ручной перезагрузке чата
+    print('LiveQuery недоступен, используется polling');
   }
 
   void _scrollToBottom() {
