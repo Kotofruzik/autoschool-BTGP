@@ -1,11 +1,15 @@
+```
+# Build artifacts
+build/
+*.dart_tool/
+*.packages
+
 # Dependencies
-.dart_tool/
-.build/
+pubspec.lock
 
 # Logs and temp files
 *.log
 *.tmp
-*.swp
 
 # Environment
 .env
@@ -15,20 +19,10 @@
 # Editors
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# Coverage
-coverage/
-lcov.info
-
-# Distribution
-dist/
-build/
-
-# Temporary files
-*.tmp
-*~
+# OS generated files
 .DS_Store
 Thumbs.db
-
-# Original rules preserved
-*.log
+```

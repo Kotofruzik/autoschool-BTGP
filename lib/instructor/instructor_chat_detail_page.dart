@@ -7,13 +7,16 @@ import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../models/chat_message.dart';
 
-class StudentChatsPage extends StatefulWidget {
+class InstructorChatDetailPage extends StatefulWidget {
+  final ChatParticipant participant;
+
+  const InstructorChatDetailPage({Key? key, required this.participant}) : super(key: key);
+
   @override
-  _StudentChatsPageState createState() => _StudentChatsPageState();
+  _InstructorChatDetailPageState createState() => _InstructorChatDetailPageState();
 }
 
-class _StudentChatsPageState extends State<StudentChatsPage> {
-  ChatParticipant? _instructor;
+class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
   List<ChatMessage> _messages = [];
   bool _isLoading = true;
   String? _error;
@@ -39,36 +42,15 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
       return;
     }
 
-    // Получаем инструктора текущего ученика
-    final instructorId = _currentUser!.get('instructorId') as String?;
-    
-    if (instructorId == null) {
-      setState(() {
-        _error = 'У вас еще нет прикрепленного инструктора';
-        _isLoading = false;
-      });
-      return;
-    }
-
-    await _loadInstructorInfo(instructorId);
-    await _loadMessages(instructorId);
+    await _loadMessages();
   }
 
-  Future<void> _loadInstructorInfo(String instructorId) async {
-    final instructor = await ChatService.getUserInfo(instructorId);
-    if (mounted) {
-      setState(() {
-        _instructor = instructor;
-      });
-    }
-  }
-
-  Future<void> _loadMessages(String instructorId) async {
+  Future<void> _loadMessages() async {
     if (_currentUser == null) return;
     
     final messages = await ChatService.getChatMessages(
       _currentUser!.objectId!,
-      instructorId,
+      widget.participant.userId,
     );
     
     if (mounted) {
@@ -94,11 +76,11 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _currentUser == null || _instructor == null) return;
+    if (text.isEmpty || _currentUser == null) return;
 
     final message = await ChatService.sendMessage(
       senderId: _currentUser!.objectId!,
-      receiverId: _instructor!.userId,
+      receiverId: widget.participant.userId,
       text: text,
     );
 
@@ -115,14 +97,14 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery);
 
-    if (image == null || _currentUser == null || _instructor == null) return;
+    if (image == null || _currentUser == null) return;
 
     final imageUrl = await ChatService.uploadChatPhoto(image, _currentUser!.objectId!);
     
     if (imageUrl != null) {
       final message = await ChatService.sendMessage(
         senderId: _currentUser!.objectId!,
-        receiverId: _instructor!.userId,
+        receiverId: widget.participant.userId,
         text: '',
         imageUrl: imageUrl,
       );
@@ -289,48 +271,46 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: _instructor != null
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.white24,
-                    backgroundImage: _instructor!.photoUrl != null
-                        ? CachedNetworkImageProvider(_instructor!.photoUrl!)
-                        : null,
-                    child: _instructor!.photoUrl == null
-                        ? Text(
-                            _instructor!.fullName.isNotEmpty 
-                                ? _instructor!.fullName[0] 
-                                : '?',
-                            style: const TextStyle(color: Colors.white),
-                          )
-                        : null,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.white24,
+              backgroundImage: widget.participant.photoUrl != null
+                  ? CachedNetworkImageProvider(widget.participant.photoUrl!)
+                  : null,
+              child: widget.participant.photoUrl == null
+                  ? Text(
+                      widget.participant.fullName.isNotEmpty 
+                          ? widget.participant.fullName[0] 
+                          : '?',
+                      style: const TextStyle(color: Colors.white),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.participant.fullName,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  widget.participant.isOnline 
+                      ? 'в сети' 
+                      : _formatLastOnline(widget.participant.lastOnline),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: widget.participant.isOnline ? Colors.greenAccent : Colors.white70,
                   ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _instructor!.fullName,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        _instructor!.isOnline 
-                            ? 'в сети' 
-                            : _formatLastOnline(_instructor!.lastOnline),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _instructor!.isOnline ? Colors.greenAccent : Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              )
-            : const Text('Чат с инструктором'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -356,7 +336,7 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
                         child: _messages.isEmpty
                             ? const Center(
                                 child: Text(
-                                  'Нет сообщений\nНапишите инструктору!',
+                                  'Нет сообщений\nНачните диалог с учеником!',
                                   style: TextStyle(color: Colors.white70, fontSize: 16),
                                   textAlign: TextAlign.center,
                                 ),
