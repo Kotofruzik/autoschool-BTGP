@@ -32,8 +32,6 @@ class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
 
   @override
   void dispose() {
-    // Отписываемся от сообщений при закрытии экрана
-    ChatService.unsubscribeFromMessages();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -496,12 +494,5 @@ class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
                   ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
   }
 }

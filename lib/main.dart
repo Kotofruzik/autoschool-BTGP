@@ -96,9 +96,6 @@ void main() async {
   const keyClientKey = '50yEotCNReUkwSd7nhVmhYnoZspmLcbizp1GJC3v';
   const keyServerUrl = 'https://parseapi.back4app.com';
 
-  // Регистрируем класс ChatMessage для работы с Parse
-  ParseObject.registerSubclass('ChatMessage', () => ParseObject('ChatMessage'));
-
   await Parse().initialize(
     keyApplicationId,
     keyServerUrl,

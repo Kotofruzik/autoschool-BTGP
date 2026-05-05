@@ -29,8 +29,6 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
 
   @override
   void dispose() {
-    // Отписываемся от сообщений при закрытии экрана
-    ChatService.unsubscribeFromMessages();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -61,11 +59,11 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
 
     await _loadInstructorInfo(instructorId);
     await _loadMessages(instructorId);
-    _subscribeToNewMessages(instructorId);
+    await _subscribeToNewMessages(instructorId);
   }
 
 
-  void _subscribeToNewMessages(String instructorId) {
+  Future<void> _subscribeToNewMessages(String instructorId) {
     if (_currentUser == null) return;
     
     ChatService.subscribeToMessages(
@@ -517,12 +515,5 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
                   ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
   }
 }
