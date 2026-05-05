@@ -15,6 +15,21 @@ class ChatService {
   static const String _region = 'ru-central1';
   static const String _endpoint = 'storage.yandexcloud.net';
 
+  // Таймер для polling новых сообщений
+  static Timer? _pollingTimer;
+  static DateTime? _lastMessageTime;
+  
+  // Очистить все ресурсы
+  static void dispose() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+    _lastMessageTime = null;
+    print('🔕 ChatService disposed');
+  }
+  
+  // Подписка на новые сообщения в реальном времени (не используется, polling вместо LiveQuery)
+  // static dynamic _subscription;
+  
   // Получить чат между двумя пользователями
   static Future<List<ChatMessage>> getChatMessages(String userId1, String userId2, {int limit = 50}) async {
     try {
@@ -54,24 +69,82 @@ class ChatService {
         obj.set('imageUrl', imageUrl);
       }
       obj.set('isDeleted', false);
-      obj.set('createdAt', DateTime.now());
+      // createdAt установится автоматически на сервере
 
       final response = await obj.save();
-      if (response.success) {
+      print('📤 Результат отправки сообщения: success=${response.success}, error=${response.error}');
+      
+      if (response.success && obj.objectId != null) {
+        // Создаем объект сообщения с данными из сохраненного объекта
         return ChatMessage(
-          id: obj.objectId ?? '',
+          id: obj.objectId!,
           senderId: senderId,
           receiverId: receiverId,
           text: text,
           imageUrl: imageUrl,
           createdAt: obj.get('createdAt') ?? DateTime.now(),
         );
+      } else {
+        print('❌ Ошибка сохранения: ${response.error?.message}');
       }
       return null;
     } catch (e) {
-      print('Ошибка отправки сообщения: $e');
+      print('❌ Исключение при отправке сообщения: $e');
       return null;
     }
+  }
+
+  // Подписаться на новые сообщения в реальном времени
+  static Future<void> subscribeToMessages({
+    required String userId1,
+    required String userId2,
+    required Function(ChatMessage) onNewMessage,
+  }) async {
+    try {
+      print('📡 Подписка на сообщения для $userId1 <-> $userId2');
+      
+      // Получаем время последнего сообщения
+      final existingMessages = await getChatMessages(userId1, userId2, limit: 1);
+      if (existingMessages.isNotEmpty) {
+        _lastMessageTime = existingMessages.last.createdAt;
+        print('ℹ️ Последнее сообщение от: $_lastMessageTime');
+      }
+      
+      // Отменяем предыдущий таймер если есть
+      _pollingTimer?.cancel();
+      
+      // Запускаем периодическую проверку новых сообщений каждые 2 секунды
+      _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+        try {
+          final messages = await getChatMessages(userId1, userId2, limit: 10);
+          
+          if (messages.isEmpty) return;
+          
+          // Фильтруем только новые сообщения
+          for (var message in messages) {
+            if (_lastMessageTime == null || message.createdAt.isAfter(_lastMessageTime!)) {
+              print('🆕 Новое сообщение найдено: ${message.text}');
+              onNewMessage(message);
+              _lastMessageTime = message.createdAt;
+            }
+          }
+        } catch (e) {
+          print('❌ Ошибка polling: $e');
+        }
+      });
+
+      print('✅ Подписка на сообщения активирована');
+    } catch (e) {
+      print('❌ Ошибка подписки на сообщения: $e');
+    }
+  }
+
+  // Отписаться от сообщений
+  static void unsubscribeFromMessages() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+    _lastMessageTime = null;
+    print('🔕 Подписка на сообщения отменена');
   }
 
   // Редактировать сообщение
@@ -121,7 +194,14 @@ class ChatService {
   // Загрузить фото в чат
   static Future<String?> uploadChatPhoto(XFile image, String userId) async {
     try {
+      print('📷 Начинаем загрузку фото...');
       final file = File(image.path);
+      
+      if (!await file.exists()) {
+        print('❌ Файл не существует: ${image.path}');
+        return null;
+      }
+      
       final minio = Minio(
         endPoint: _endpoint,
         port: 443,
@@ -132,20 +212,25 @@ class ChatService {
       );
 
       final key = 'chats/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      print('📤 Загружаем файл: $key');
+      
       final fileData = await file.readAsBytes();
+      print('📊 Размер файла: ${fileData.length} байт');
+      
       final stream = Stream.fromFuture(Future.value(fileData));
       await minio.putObject(
         _bucket,
         key,
         stream,
+        fileData.length,
         metadata: {'Content-Type': 'image/jpeg'},
       );
 
-      final photoUrl = 'https://$_endpoint/$_bucket/$key';
-      print('✅ Фото чата загружено: $photoUrl');
+      final photoUrl = 'https://$_bucket.$_endpoint/$key';
+      print('✅ Фото загружено: $photoUrl');
       return photoUrl;
     } catch (e) {
-      print('❌ Ошибка загрузки фото чата: $e');
+      print('❌ Ошибка загрузки фото: $e');
       return null;
     }
   }

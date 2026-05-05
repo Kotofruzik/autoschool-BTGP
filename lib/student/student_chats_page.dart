@@ -27,6 +27,14 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
     _initializeChat();
   }
 
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    ChatService.dispose();
+    super.dispose();
+  }
+
   Future<void> _initializeChat() async {
     final auth = Provider.of<AuthService>(context, listen: false);
     _currentUser = auth.currentUser;
@@ -52,6 +60,25 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
 
     await _loadInstructorInfo(instructorId);
     await _loadMessages(instructorId);
+    await _subscribeToNewMessages(instructorId);
+  }
+
+
+  Future<void> _subscribeToNewMessages(String instructorId) async {
+    if (_currentUser == null) return;
+    
+    await ChatService.subscribeToMessages(
+      userId1: _currentUser!.objectId!,
+      userId2: instructorId,
+      onNewMessage: (message) {
+        if (mounted) {
+          setState(() {
+            _messages.add(message);
+          });
+          _scrollToBottom();
+        }
+      },
+    );
   }
 
   Future<void> _loadInstructorInfo(String instructorId) async {
@@ -96,42 +123,87 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
     final text = _messageController.text.trim();
     if (text.isEmpty || _currentUser == null || _instructor == null) return;
 
+    print('📤 Отправляем сообщение: "$text"');
+    
+    setState(() {
+      // Показываем индикатор отправки или блокируем кнопку
+    });
+
     final message = await ChatService.sendMessage(
       senderId: _currentUser!.objectId!,
       receiverId: _instructor!.userId,
       text: text,
     );
 
+    print('📨 Результат: ${message != null ? "успешно" : "ошибка"}');
+
     if (message != null && mounted) {
       setState(() {
         _messages.add(message);
+        _messageController.clear();
       });
-      _messageController.clear();
       _scrollToBottom();
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Не удалось отправить сообщение')),
+      );
     }
   }
 
   Future<void> _sendPhoto() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      print('📷 Выбор фото...');
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery);
 
-    if (image == null || _currentUser == null || _instructor == null) return;
+      if (image == null) {
+        print('⚠️ Фото не выбрано');
+        return;
+      }
 
-    final imageUrl = await ChatService.uploadChatPhoto(image, _currentUser!.objectId!);
-    
-    if (imageUrl != null) {
-      final message = await ChatService.sendMessage(
-        senderId: _currentUser!.objectId!,
-        receiverId: _instructor!.userId,
-        text: '',
-        imageUrl: imageUrl,
-      );
+      if (_currentUser == null || _instructor == null) {
+        print('❌ Пользователь или инструктор не найден');
+        return;
+      }
 
-      if (message != null && mounted) {
-        setState(() {
-          _messages.add(message);
-        });
-        _scrollToBottom();
+      print('📤 Загружаем фото...');
+      setState(() {
+        // Можно показать индикатор загрузки
+      });
+
+      final imageUrl = await ChatService.uploadChatPhoto(image, _currentUser!.objectId!);
+      
+      if (imageUrl != null) {
+        print('📨 Отправляем сообщение с фото...');
+        final message = await ChatService.sendMessage(
+          senderId: _currentUser!.objectId!,
+          receiverId: _instructor!.userId,
+          text: '',
+          imageUrl: imageUrl,
+        );
+
+        if (message != null && mounted) {
+          setState(() {
+            _messages.add(message);
+          });
+          _scrollToBottom();
+          print('✅ Фото отправлено');
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('❌ Не удалось отправить фото')),
+          );
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Не удалось загрузить фото')),
+        );
+      }
+    } catch (e) {
+      print('❌ Ошибка отправки фото: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Ошибка: $e')),
+        );
       }
     }
   }
@@ -489,12 +561,5 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
                   ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
   }
 }

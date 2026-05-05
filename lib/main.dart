@@ -14,6 +14,7 @@ import 'package:autoschool_btgp/student/student_home_page.dart';
 import 'package:autoschool_btgp/instructor/instructor_home_page.dart';
 import 'package:autoschool_btgp/admin/admin_home_page.dart';
 import 'package:autoschool_btgp/instructor/create_lesson_page.dart';
+import 'package:autoschool_btgp/models/chat_message.dart';
 import 'dart:convert';
 
 @pragma('vm:entry-point')
