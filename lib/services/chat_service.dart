@@ -83,21 +83,29 @@ class ChatService {
         obj.set('imageUrl', imageUrl);
       }
       obj.set('isDeleted', false);
-      obj.set('createdAt', DateTime.now());
 
       final response = await obj.save();
-      if (response.success) {
+      
+      print('🔍 [CHAT] Response success: ${response.success}');
+      print('🔍 [CHAT] Response error: ${response.error}');
+      print('🔍 [CHAT] Object objectId after save: ${obj.objectId}');
+      print('🔍 [CHAT] Object createdAt after save: ${obj.get('createdAt')}');
+      
+      if (response.success && obj.objectId != null) {
+        // После save() объект obj должен содержать objectId и createdAt
+        final now = DateTime.now();
+        final createdAt = obj.get('createdAt') as DateTime? ?? now;
         print('✅ [CHAT] Сообщение успешно отправлено, objectId: ${obj.objectId}');
         return ChatMessage(
-          id: obj.objectId ?? '',
+          id: obj.objectId!,
           senderId: senderId,
           receiverId: receiverId,
           text: text,
           imageUrl: imageUrl,
-          createdAt: obj.get('createdAt') ?? DateTime.now(),
+          createdAt: createdAt,
         );
       } else {
-        print('❌ [CHAT] Ошибка отправки: ${response.error?.message}');
+        print('❌ [CHAT] Ошибка отправки: ${response.error?.message ?? "objectId is null"}');
         return null;
       }
     } catch (e, stackTrace) {
