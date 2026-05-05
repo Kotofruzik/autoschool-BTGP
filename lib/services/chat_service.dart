@@ -15,21 +15,46 @@ class ChatService {
   static const String _region = 'ru-central1';
   static const String _endpoint = 'storage.yandexcloud.net';
 
+  // Stream подписка на новые сообщения
+  static StreamSubscription<ParseLiveQueryEvent>? _messageSubscription;
+
   // Получить чат между двумя пользователями
   static Future<List<ChatMessage>> getChatMessages(String userId1, String userId2, {int limit = 50}) async {
     try {
       final query = QueryBuilder<ParseObject>(ParseObject(_className))
-        ..whereContainedIn('senderId', [userId1, userId2])
-        ..whereContainedIn('receiverId', [userId1, userId2])
-        ..orderByDescending('createdAt')
+        ..whereEqualTo('senderId', userId1)
+        ..whereEqualTo('receiverId', userId2)
+        ..orderByAscending('createdAt')
         ..setLimit(limit);
 
       final response = await query.query();
       if (response.success && response.results != null) {
-        final messages = response.results!
+        final messages1 = response.results!
             .map((obj) => ChatMessage.fromParseObject(obj as ParseObject))
+            .where((m) => !m.isDeleted)
             .toList();
-        return messages.reversed.toList();
+        
+        // Получаем сообщения в обратном направлении
+        final query2 = QueryBuilder<ParseObject>(ParseObject(_className))
+          ..whereEqualTo('senderId', userId2)
+          ..whereEqualTo('receiverId', userId1)
+          ..orderByAscending('createdAt')
+          ..setLimit(limit);
+
+        final response2 = await query2.query();
+        if (response2.success && response2.results != null) {
+          final messages2 = response2.results!
+              .map((obj) => ChatMessage.fromParseObject(obj as ParseObject))
+              .where((m) => !m.isDeleted)
+              .toList();
+          
+          // Объединяем и сортируем по времени
+          final allMessages = [...messages1, ...messages2];
+          allMessages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          return allMessages;
+        }
+        
+        return messages1;
       }
       return [];
     } catch (e) {
@@ -133,11 +158,12 @@ class ChatService {
 
       final key = 'chats/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
       final fileData = await file.readAsBytes();
-      final stream = Stream.fromFuture(Future.value(fileData));
+      final stream = Stream.value(fileData);
       await minio.putObject(
         _bucket,
         key,
         stream,
+        fileData.length,
         metadata: {'Content-Type': 'image/jpeg'},
       );
 
@@ -246,8 +272,8 @@ class ChatService {
         final user = response.results!.first as ParseObject;
         return ChatParticipant.fromMap({
           'id': user.objectId,
-          'firstname': user.get('firstname'),
-          'surname': user.get('surname'),
+          'firstname': user.get('firstname') ?? '',
+          'surname': user.get('surname') ?? '',
           'photo': user.get('photo'),
           'lastOnline': user.get('lastOnline'),
           'isOnline': user.get('isOnline') ?? false,
@@ -257,6 +283,42 @@ class ChatService {
     } catch (e) {
       print('Ошибка получения информации о пользователе: $e');
       return null;
+    }
+  }
+
+  // Подписка на LiveQuery для получения новых сообщений в реальном времени
+  static Stream<List<ChatMessage>> subscribeToMessages(String userId1, String userId2) async* {
+    try {
+      final client = await ParseLiveQueryClient().getInstance(
+        parseLiveQueryUrl: 'wss://parseapi.back4app.com',
+      );
+
+      final query = QueryBuilder<ParseObject>(ParseObject(_className))
+        ..whereEqualTo('senderId', userId1)
+        ..whereEqualTo('receiverId', userId2);
+
+      final query2 = QueryBuilder<ParseObject>(ParseObject(_className))
+        ..whereEqualTo('senderId', userId2)
+        ..whereEqualTo('receiverId', userId1);
+
+      final subscription = await client.subscribe(query);
+      final subscription2 = await client.subscribe(query2);
+
+      subscription.on(ParseLiveQueryEvent.create, (obj) {
+        final message = ChatMessage.fromParseObject(obj as ParseObject);
+        if (!message.isDeleted) {
+          yield [message];
+        }
+      });
+
+      subscription2.on(ParseLiveQueryEvent.create, (obj) {
+        final message = ChatMessage.fromParseObject(obj as ParseObject);
+        if (!message.isDeleted) {
+          yield [message];
+        }
+      });
+    } catch (e) {
+      print('Ошибка подписки на сообщения: $e');
     }
   }
 }

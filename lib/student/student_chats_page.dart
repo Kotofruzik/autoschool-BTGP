@@ -20,6 +20,7 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   ParseUser? _currentUser;
+  StreamSubscription<List<ChatMessage>>? _messagesSubscription;
 
   @override
   void initState() {
@@ -65,19 +66,39 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
 
   Future<void> _loadMessages(String instructorId) async {
     if (_currentUser == null) return;
-    
+
     final messages = await ChatService.getChatMessages(
       _currentUser!.objectId!,
       instructorId,
     );
-    
+
     if (mounted) {
       setState(() {
         _messages = messages;
         _isLoading = false;
       });
       _scrollToBottom();
+      _subscribeToNewMessages(instructorId);
     }
+  }
+
+  void _subscribeToNewMessages(String instructorId) {
+    _messagesSubscription?.cancel();
+    _messagesSubscription = ChatService.subscribeToMessages(
+      _currentUser!.objectId!,
+      instructorId,
+    ).listen((newMessages) {
+      if (!mounted) return;
+      setState(() {
+        for (var msg in newMessages) {
+          if (!_messages.any((m) => m.id == msg.id)) {
+            _messages.add(msg);
+          }
+        }
+        _messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      });
+      _scrollToBottom();
+    });
   }
 
   void _scrollToBottom() {
@@ -495,6 +516,7 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _messagesSubscription?.cancel();
     super.dispose();
   }
 }
