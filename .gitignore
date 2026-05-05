@@ -1,28 +1,87 @@
 ```
-# Build artifacts
-build/
-*.dart_tool/
-*.packages
-
 # Dependencies
-pubspec.lock
+.dart_tool/
+.build/
+.packages
 
-# Logs and temp files
+# Logs
 *.log
-*.tmp
+**/logs
 
-# Environment
+# Environment variables
 .env
 .env.local
-*.env.*
+.env.*
 
-# Editors
-.vscode/
+# IDE specific
 .idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
 *.swp
 *.swo
 
 # OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+
+# Coverage
+coverage/
+*.lcov
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Flutter build artifacts
+/build/
+/ios/.symlinks
+/ios/Flutter/.last_build_id
+**/ios/Pods
+**/ios/.symlinks
+**/android/.gradle
+**/android/local.properties
+**/android/key.properties
+**/android/gradlew
+**/android/gradlew.bat
+**/android/gradle/wrapper/gradle-wrapper.jar
+**/android/gradle/wrapper/gradle-wrapper.properties
+**/android/gradle.properties
+**/android/settings.gradle
+**/android/build.gradle
+**/android/app/build.gradle
+**/android/gradle
+**/android/gradlew
+**/android/gradlew.bat
+**/android/app/src/main/kotlin/**/*.class
+**/android/app/src/main/java/**/*.class
+**/android/app/src/main/kotlin/**/*.jar
+**/android/app/src/main/java/**/*.jar
+**/android/app/src/main/kotlin/**/*.aar
+**/android/app/src/main/java/**/*.aar
+**/android/app/src/main/kotlin/**/*.so
+**/android/app/src/main/java/**/*.so
+**/android/app/src/main/kotlin/**/*.dylib
+**/android/app/src/main/java/**/*.dylib
+**/android/app/src/main/kotlin/**/*.dll
+**/android/app/src/main/java/**/*.dll
+**/android/app/src/main/kotlin/**/*.exe
+**/android/app/src/main/java/**/*.exe
+**/android/app/src/main/kotlin/**/*.bin
+**/android/app/src/main/java/**/*.bin
+**/android/app/src/main/kotlin/**/*.out
+**/android/app/src/main/java/**/*.out
+**/android/app/src/main/kotlin/**/*.o
+**/android/app/src/main/java/**/*.o
+**/android/app/src/main/kotlin/**/*.obj
+**/android/app/src/main/java/**/*.obj
+**/android/app/src/main/kotlin/**/*.a
+**/android/app/src/main/java/**/*.a
 ```
