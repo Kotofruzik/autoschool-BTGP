@@ -15,9 +15,6 @@ class ChatService {
   static const String _region = 'ru-central1';
   static const String _endpoint = 'storage.yandexcloud.net';
 
-  // Stream подписка на новые сообщения
-  static StreamSubscription<ParseLiveQueryEvent>? _messageSubscription;
-
   // Получить чат между двумя пользователями
   static Future<List<ChatMessage>> getChatMessages(String userId1, String userId2, {int limit = 50}) async {
     try {
@@ -158,12 +155,10 @@ class ChatService {
 
       final key = 'chats/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
       final fileData = await file.readAsBytes();
-      final stream = Stream.value(fileData);
       await minio.putObject(
         _bucket,
         key,
-        stream,
-        fileData.length,
+        fileData,
         metadata: {'Content-Type': 'image/jpeg'},
       );
 
@@ -288,37 +283,9 @@ class ChatService {
 
   // Подписка на LiveQuery для получения новых сообщений в реальном времени
   static Stream<List<ChatMessage>> subscribeToMessages(String userId1, String userId2) async* {
-    try {
-      final client = await ParseLiveQueryClient().getInstance(
-        parseLiveQueryUrl: 'wss://parseapi.back4app.com',
-      );
-
-      final query = QueryBuilder<ParseObject>(ParseObject(_className))
-        ..whereEqualTo('senderId', userId1)
-        ..whereEqualTo('receiverId', userId2);
-
-      final query2 = QueryBuilder<ParseObject>(ParseObject(_className))
-        ..whereEqualTo('senderId', userId2)
-        ..whereEqualTo('receiverId', userId1);
-
-      final subscription = await client.subscribe(query);
-      final subscription2 = await client.subscribe(query2);
-
-      subscription.on(ParseLiveQueryEvent.create, (obj) {
-        final message = ChatMessage.fromParseObject(obj as ParseObject);
-        if (!message.isDeleted) {
-          yield [message];
-        }
-      });
-
-      subscription2.on(ParseLiveQueryEvent.create, (obj) {
-        final message = ChatMessage.fromParseObject(obj as ParseObject);
-        if (!message.isDeleted) {
-          yield [message];
-        }
-      });
-    } catch (e) {
-      print('Ошибка подписки на сообщения: $e');
-    }
+    // Эта функция больше не используется - подписка реализована напрямую в student_chats_page.dart
+    // Оставлена для совместимости, но возвращает пустой поток
+    yield [];
+    return;
   }
 }

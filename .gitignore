@@ -1,42 +1,34 @@
 ```
+# Flutter/Dart specific
+.dart_tool/
+.build/
+packages/
+*.iws
+*.sw?
+.DS_Store
+flutter/
+pubspec.lock
+
 # Dependencies
-.pub/
-.buildlog
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
+vendor/
 
-# Generated plugin build files
-flutter_export_environment.sh
-
-# Coverage
-coverage/
-
-# Temporary upload directory
-/uploads/
-
-# Log
+# Logs
 *.log
 
-# Environment
+# Environment variables
 .env
 .env.local
 .env.*
 !.env.example
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Android
-**/android/**
-**/ios/**
-
-# Build
-**/build/
+# Build artifacts
+build/
+dist/
+target/
 ```

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
+import 'package:parse_live_query/parse_live_query.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../models/chat_message.dart';
@@ -84,21 +85,52 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
 
   void _subscribeToNewMessages(String instructorId) {
     _messagesSubscription?.cancel();
-    _messagesSubscription = ChatService.subscribeToMessages(
-      _currentUser!.objectId!,
-      instructorId,
-    ).listen((newMessages) {
-      if (!mounted) return;
-      setState(() {
-        for (var msg in newMessages) {
-          if (!_messages.any((m) => m.id == msg.id)) {
-            _messages.add(msg);
+    
+    // Подписка на новые сообщения через LiveQuery
+    try {
+      final client = ParseLiveQueryClient();
+      
+      // Query для сообщений от текущего пользователя к инструктору
+      final query1 = QueryBuilder<ParseObject>(ParseObject('ChatMessage'))
+        ..whereEqualTo('senderId', _currentUser!.objectId!)
+        ..whereEqualTo('receiverId', instructorId);
+      
+      // Query для сообщений от инструктора к текущему пользователю
+      final query2 = QueryBuilder<ParseObject>(ParseObject('ChatMessage'))
+        ..whereEqualTo('senderId', instructorId)
+        ..whereEqualTo('receiverId', _currentUser!.objectId!);
+      
+      // Подписываемся на оба запроса
+      client.subscribe(query1).then((subscription) {
+        subscription.on(ParseLiveQueryEvent.create, (obj) {
+          if (!mounted) return;
+          final message = ChatMessage.fromParseObject(obj as ParseObject);
+          if (!message.isDeleted && !_messages.any((m) => m.id == message.id)) {
+            setState(() {
+              _messages.add(message);
+              _messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+            });
+            _scrollToBottom();
           }
-        }
-        _messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        });
       });
-      _scrollToBottom();
-    });
+      
+      client.subscribe(query2).then((subscription) {
+        subscription.on(ParseLiveQueryEvent.create, (obj) {
+          if (!mounted) return;
+          final message = ChatMessage.fromParseObject(obj as ParseObject);
+          if (!message.isDeleted && !_messages.any((m) => m.id == message.id)) {
+            setState(() {
+              _messages.add(message);
+              _messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+            });
+            _scrollToBottom();
+          }
+        });
+      });
+    } catch (e) {
+      print('Ошибка подписки на LiveQuery: $e');
+    }
   }
 
   void _scrollToBottom() {

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
+import 'package:parse_live_query/parse_live_query.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../models/chat_message.dart';
@@ -23,6 +24,7 @@ class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   ParseUser? _currentUser;
+  StreamSubscription<List<ChatMessage>>? _messagesSubscription;
 
   @override
   void initState() {
@@ -59,6 +61,53 @@ class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
         _isLoading = false;
       });
       _scrollToBottom();
+      _subscribeToNewMessages();
+    }
+  }
+
+  void _subscribeToNewMessages() {
+    _messagesSubscription?.cancel();
+    
+    try {
+      final client = ParseLiveQueryClient();
+      
+      final query1 = QueryBuilder<ParseObject>(ParseObject('ChatMessage'))
+        ..whereEqualTo('senderId', _currentUser!.objectId!)
+        ..whereEqualTo('receiverId', widget.participant.userId);
+      
+      final query2 = QueryBuilder<ParseObject>(ParseObject('ChatMessage'))
+        ..whereEqualTo('senderId', widget.participant.userId)
+        ..whereEqualTo('receiverId', _currentUser!.objectId!);
+      
+      client.subscribe(query1).then((subscription) {
+        subscription.on(ParseLiveQueryEvent.create, (obj) {
+          if (!mounted) return;
+          final message = ChatMessage.fromParseObject(obj as ParseObject);
+          if (!message.isDeleted && !_messages.any((m) => m.id == message.id)) {
+            setState(() {
+              _messages.add(message);
+              _messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+            });
+            _scrollToBottom();
+          }
+        });
+      });
+      
+      client.subscribe(query2).then((subscription) {
+        subscription.on(ParseLiveQueryEvent.create, (obj) {
+          if (!mounted) return;
+          final message = ChatMessage.fromParseObject(obj as ParseObject);
+          if (!message.isDeleted && !_messages.any((m) => m.id == message.id)) {
+            setState(() {
+              _messages.add(message);
+              _messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+            });
+            _scrollToBottom();
+          }
+        });
+      });
+    } catch (e) {
+      print('Ошибка подписки на LiveQuery: $e');
     }
   }
 
@@ -473,6 +522,7 @@ class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
 
   @override
   void dispose() {
+    _messagesSubscription?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
