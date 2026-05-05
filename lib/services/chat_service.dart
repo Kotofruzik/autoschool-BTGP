@@ -16,24 +16,51 @@ class ChatService {
   static const String _endpoint = 'storage.yandexcloud.net';
 
   // Получить чат между двумя пользователями
-  static Future<List<ChatMessage>> getChatMessages(String userId1, String userId2, {int limit = 50}) async {
+  static Future<List<ChatMessage>> getChatMessages(String userId1, String userId2, {int limit = 100}) async {
     try {
-      final query = QueryBuilder<ParseObject>(ParseObject(_className))
-        ..whereContainedIn('senderId', [userId1, userId2])
-        ..whereContainedIn('receiverId', [userId1, userId2])
-        ..orderByDescending('createdAt')
+      print('📩 [CHAT] Загрузка сообщений между $userId1 и $userId2');
+      
+      // Получаем сообщения где (senderId=userId1 AND receiverId=userId2)
+      final query1 = QueryBuilder<ParseObject>(ParseObject(_className))
+        ..whereEqualTo('senderId', userId1)
+        ..whereEqualTo('receiverId', userId2)
+        ..orderByAscending('createdAt')
         ..setLimit(limit);
 
-      final response = await query.query();
-      if (response.success && response.results != null) {
-        final messages = response.results!
+      final response1 = await query1.query();
+      print('📩 [CHAT] Запрос 1: success=${response1.success}, count=${response1.results?.length ?? 0}');
+      
+      // Получаем сообщения где (senderId=userId2 AND receiverId=userId1)
+      final query2 = QueryBuilder<ParseObject>(ParseObject(_className))
+        ..whereEqualTo('senderId', userId2)
+        ..whereEqualTo('receiverId', userId1)
+        ..orderByAscending('createdAt')
+        ..setLimit(limit);
+
+      final response2 = await query2.query();
+      print('📩 [CHAT] Запрос 2: success=${response2.success}, count=${response2.results?.length ?? 0}');
+      
+      List<ChatMessage> messages = [];
+      
+      if (response1.success && response1.results != null) {
+        messages.addAll(response1.results!
             .map((obj) => ChatMessage.fromParseObject(obj as ParseObject))
-            .toList();
-        return messages.reversed.toList();
+            .toList());
       }
-      return [];
-    } catch (e) {
-      print('Ошибка загрузки сообщений: $e');
+      
+      if (response2.success && response2.results != null) {
+        messages.addAll(response2.results!
+            .map((obj) => ChatMessage.fromParseObject(obj as ParseObject))
+            .toList());
+      }
+      
+      // Сортируем по времени создания (от старых к новым)
+      messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      print('📩 [CHAT] Всего сообщений: ${messages.length}');
+      return messages;
+    } catch (e, stackTrace) {
+      print('❌ [CHAT] Ошибка загрузки сообщений: $e');
+      print('❌ [CHAT] Stack trace: $stackTrace');
       return [];
     }
   }
@@ -46,6 +73,8 @@ class ChatService {
     String? imageUrl,
   }) async {
     try {
+      print('📤 [CHAT] Отправка сообщения от $senderId к $receiverId: $text');
+      
       final obj = ParseObject(_className);
       obj.set('senderId', senderId);
       obj.set('receiverId', receiverId);
@@ -58,6 +87,7 @@ class ChatService {
 
       final response = await obj.save();
       if (response.success) {
+        print('✅ [CHAT] Сообщение успешно отправлено, objectId: ${obj.objectId}');
         return ChatMessage(
           id: obj.objectId ?? '',
           senderId: senderId,
@@ -66,10 +96,13 @@ class ChatService {
           imageUrl: imageUrl,
           createdAt: obj.get('createdAt') ?? DateTime.now(),
         );
+      } else {
+        print('❌ [CHAT] Ошибка отправки: ${response.error?.message}');
+        return null;
       }
-      return null;
-    } catch (e) {
-      print('Ошибка отправки сообщения: $e');
+    } catch (e, stackTrace) {
+      print('❌ [CHAT] Ошибка отправки сообщения: $e');
+      print('❌ [CHAT] Stack trace: $stackTrace');
       return null;
     }
   }
@@ -238,13 +271,15 @@ class ChatService {
   // Получить информацию о пользователе
   static Future<ChatParticipant?> getUserInfo(String userId) async {
     try {
+      print('👤 [CHAT] Получение информации о пользователе: $userId');
+      
       final query = QueryBuilder<ParseObject>(ParseObject('_User'))
         ..whereEqualTo('objectId', userId);
       final response = await query.query();
 
       if (response.success && response.results != null && response.results!.isNotEmpty) {
         final user = response.results!.first as ParseObject;
-        return ChatParticipant.fromMap({
+        final participant = ChatParticipant.fromMap({
           'id': user.objectId,
           'firstname': user.get('firstname'),
           'surname': user.get('surname'),
@@ -252,10 +287,14 @@ class ChatService {
           'lastOnline': user.get('lastOnline'),
           'isOnline': user.get('isOnline') ?? false,
         });
+        print('✅ [CHAT] Информация получена: ${participant.fullName}');
+        return participant;
       }
+      print('⚠️ [CHAT] Пользователь не найден');
       return null;
-    } catch (e) {
-      print('Ошибка получения информации о пользователе: $e');
+    } catch (e, stackTrace) {
+      print('❌ [CHAT] Ошибка получения информации о пользователе: $e');
+      print('❌ [CHAT] Stack trace: $stackTrace');
       return null;
     }
   }
