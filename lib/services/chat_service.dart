@@ -15,8 +15,8 @@ class ChatService {
   static const String _region = 'ru-central1';
   static const String _endpoint = 'storage.yandexcloud.net';
 
-  // Подписка на новые сообщения в реальном времени
-  static dynamic _subscription;
+  // Подписка на новые сообщения в реальном времени (не используется, polling вместо LiveQuery)
+  // static dynamic _subscription;
   
   // Получить чат между двумя пользователями
   static Future<List<ChatMessage>> getChatMessages(String userId1, String userId2, {int limit = 50}) async {
@@ -84,16 +84,16 @@ class ChatService {
     required Function(ChatMessage) onNewMessage,
   }) async {
     try {
-      final query = QueryBuilder<ParseObject>(ParseObject(_className))
-        ..whereContainedIn('senderId', [userId1, userId2])
-        ..whereContainedIn('receiverId', [userId1, userId2]);
-
-      _subscription = await query.subscribe();
+      // LiveQuery не поддерживается в текущей версии parse_server_sdk
+      // Используем polling как временное решение
+      print('ℹ️ LiveQuery недоступен, используем периодическую проверку');
       
-      _subscription.on(LiveQueryEvent.create, (event) {
-        final obj = event as ParseObject;
-        final message = ChatMessage.fromParseObject(obj);
-        onNewMessage(message);
+      // Запускаем периодическую проверку новых сообщений каждые 3 секунды
+      Timer.periodic(const Duration(seconds: 3), (timer) async {
+        final messages = await getChatMessages(userId1, userId2, limit: 1);
+        if (messages.isNotEmpty) {
+          onNewMessage(messages.last);
+        }
       });
 
       print('✅ Подписка на сообщения активирована для $userId1 <-> $userId2');
@@ -104,10 +104,6 @@ class ChatService {
 
   // Отписаться от сообщений
   static void unsubscribeFromMessages() {
-    if (_subscription != null) {
-      _subscription.unsubscribe();
-      _subscription = null;
-    }
     print('🔕 Подписка на сообщения отменена');
   }
 

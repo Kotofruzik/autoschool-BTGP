@@ -1,39 +1,28 @@
 ```
-# Flutter/Dart specific
-.dart_tool/
-.build/
-.packages
-flutter_export_environment.sh
+# Build artifacts
+*.dart_tool/
+*.build/
+build/
 
 # Dependencies
-vendor/
+pubspec.lock
 
-# Logs
+# Logs and temp files
 *.log
+*.tmp
 
-# Environment variables
+# Environment
 .env
 .env.local
-*.env
+*.env.*
 
-# IDE specific
-.idea/
+# Editor/IDE files
 .vscode/
+.idea/
 *.swp
 *.swo
 
 # OS generated files
 .DS_Store
 Thumbs.db
-
-# Build outputs
-build/
-dist/
-
-# Cache directories
-.cache/
-.mypy_cache/
-.pytest_cache/
-coverage/
-htmlcov/
 ```

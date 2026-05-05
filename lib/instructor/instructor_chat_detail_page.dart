@@ -34,6 +34,7 @@ class _InstructorChatDetailPageState extends State<InstructorChatDetailPage> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    ChatService.unsubscribeFromMessages();
     super.dispose();
   }
 

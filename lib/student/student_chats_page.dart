@@ -31,6 +31,7 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    ChatService.unsubscribeFromMessages();
     super.dispose();
   }
 
@@ -63,10 +64,10 @@ class _StudentChatsPageState extends State<StudentChatsPage> {
   }
 
 
-  Future<void> _subscribeToNewMessages(String instructorId) {
+  Future<void> _subscribeToNewMessages(String instructorId) async {
     if (_currentUser == null) return;
     
-    ChatService.subscribeToMessages(
+    await ChatService.subscribeToMessages(
       userId1: _currentUser!.objectId!,
       userId2: instructorId,
       onNewMessage: (message) {
